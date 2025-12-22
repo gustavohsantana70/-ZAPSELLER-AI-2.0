@@ -17,10 +17,11 @@ export const getGeminiResponse = async (
   isVipSupport: boolean = false
 ): Promise<AIResponse> => {
   
+  // O Vite substituirá esta string literalmente pelo valor definido no config
   const apiKey = process.env.API_KEY;
   
-  if (!apiKey) {
-    return { text: "O sistema de IA está sendo reiniciado pelo servidor. Por favor, aguarde um instante." };
+  if (!apiKey || apiKey === "") {
+    return { text: "O sistema de IA está sendo reiniciado ou a chave não foi configurada. Por favor, aguarde ou verifique as configurações." };
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -80,6 +81,7 @@ export const getGeminiResponse = async (
       isThinking: thinkingBudget > 0
     };
   } catch (error) {
+    console.error("Erro na IA:", error);
     return { text: "Certo! Entendi perfeitamente. Como podemos prosseguir com o envio hoje?" };
   }
 };

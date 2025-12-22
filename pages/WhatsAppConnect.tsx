@@ -24,7 +24,7 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
       { msg: "Iniciando gateway de conexão...", delay: 500 },
       { msg: "Gerando par de chaves RSA-2048...", delay: 1200 },
       { msg: "Aguardando handshake do dispositivo...", delay: 2000 },
-      { msg: "Terminal pronto para ativação manual.", delay: 2500 },
+      { msg: "Terminal pronto para ativação em sandbox.", delay: 2500 },
     ];
 
     sequence.forEach((item, index) => {
@@ -37,11 +37,11 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
 
   const simulateScan = () => {
     setLoading(true);
-    addLog("Comando de bypass detectado...");
+    addLog("Comando de bypass (Ativação Manual) recebido...");
     
     setTimeout(() => addLog("Sincronizando banco de dados de leads..."), 800);
     setTimeout(() => addLog("Injetando protocolos de IA vendedora..."), 1600);
-    setTimeout(() => addLog("Instância vinculada com sucesso."), 2400);
+    setTimeout(() => addLog("Instância vinculada com sucesso ao Sandbox."), 2400);
     
     setTimeout(() => {
       setLoading(false);
@@ -60,7 +60,7 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4 font-mono">
       <div className="max-w-5xl w-full bg-[#111] rounded-[40px] border border-white/10 shadow-[0_0_50px_rgba(16,185,129,0.1)] overflow-hidden flex flex-col md:flex-row">
         
-        {/* Left Side: Terminal Info */}
+        {/* Terminal Info */}
         <div className="p-10 md:p-16 flex-1 bg-gradient-to-br from-emerald-950/40 to-black">
           <div className="flex items-center gap-4 mb-12">
             <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]">
@@ -85,10 +85,10 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
                </div>
             </div>
 
-            <div className="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-               <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mb-2"><i className="fas fa-info-circle mr-2"></i>Como Conectar</p>
+            <div className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+               <p className="text-amber-500 text-[10px] font-black uppercase tracking-widest mb-2"><i className="fas fa-exclamation-triangle mr-2"></i>Atenção: Modo Simulação</p>
                <p className="text-white/60 text-[10px] leading-relaxed">
-                 Este é um ambiente de <b>desenvolvimento</b>. O QR Code ao lado é ilustrativo. Para testar o sistema, clique em <b>"Ativar Instância Manual"</b> no painel ao lado.
+                 O QR Code é gerado para testes de interface. O app do WhatsApp não o reconhecerá. Utilize o botão <b>"Ativar Instância Manual"</b> para prosseguir.
                </p>
             </div>
           </div>
@@ -98,7 +98,7 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
           </button>
         </div>
 
-        {/* Right Side: Action Area */}
+        {/* Action Area */}
         <div className="flex-1 p-12 bg-white flex flex-col items-center justify-center text-center relative overflow-hidden">
           {step === 1 && (
             <div className="space-y-8 animate-in fade-in zoom-in duration-500 max-w-xs">
@@ -106,7 +106,7 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
                 <i className="fas fa-network-wired text-6xl text-slate-200 group-hover:text-emerald-500 group-hover:scale-110 transition-all"></i>
               </div>
               <h3 className="text-slate-900 font-black text-2xl tracking-tight leading-tight">Vincular Número</h3>
-              <p className="text-slate-500 text-sm font-medium leading-relaxed">Inicie o servidor de conexão para sincronizar sua conta de atendimento.</p>
+              <p className="text-slate-500 text-sm font-medium leading-relaxed">Inicie o servidor de conexão para sincronizar sua conta de atendimento em modo sandbox.</p>
               <button 
                 onClick={runConnectionSequence} 
                 className="w-full bg-slate-900 text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-slate-200 hover:bg-emerald-600 transition-all active:scale-95"
@@ -125,11 +125,11 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
                       alt="QR Code Simulado" 
                       className="w-full h-full object-contain pointer-events-none opacity-20 grayscale"
                   />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-white/40 backdrop-blur-[2px]">
-                    <div className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl">
-                      Ambiente de Demo
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-white/60 backdrop-blur-[4px]">
+                    <div className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl">
+                      MODO SANDBOX
                     </div>
-                    <p className="text-slate-500 text-[9px] mt-2 font-bold max-w-[120px]">Utilize a ativação manual abaixo</p>
+                    <p className="text-slate-600 text-[10px] mt-3 font-bold max-w-[140px] leading-tight">Não escaneie com o celular. Use o botão abaixo.</p>
                   </div>
                 </div>
                 {loading && (
@@ -143,12 +143,12 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
                  <button 
                   onClick={simulateScan} 
                   disabled={loading}
-                  className="w-full bg-emerald-600 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all disabled:opacity-50"
+                  className="w-full bg-emerald-600 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all disabled:opacity-50 animate-pulse"
                  >
                    {loading ? 'Sincronizando...' : 'Ativar Instância Manual'}
                    <i className="fas fa-bolt"></i>
                  </button>
-                 <p className="text-slate-400 text-[9px] font-bold">A ativação manual simula o escaneamento do código com sucesso para fins de teste da IA.</p>
+                 <p className="text-slate-400 text-[9px] font-bold">Clique no botão verde acima para simular a conexão e prosseguir para o teste da IA.</p>
               </div>
             </div>
           )}
@@ -160,10 +160,10 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
                   <div className="absolute -inset-4 border-2 border-emerald-500/20 rounded-[60px] animate-ping opacity-20"></div>
                </div>
                <div>
-                  <h2 className="text-3xl font-black text-slate-900 leading-tight mb-2 tracking-tight">Vendedor Pronto</h2>
-                  <p className="text-slate-500 text-sm font-bold">Instância conectada em modo sandbox. Vá para o simulador para testar as respostas da IA.</p>
+                  <h2 className="text-3xl font-black text-slate-900 leading-tight mb-2 tracking-tight">Ativado!</h2>
+                  <p className="text-slate-500 text-sm font-bold">Instância conectada no Sandbox. Agora você pode ir para o Simulador testar a IA.</p>
                </div>
-               <button onClick={onSuccess} className="w-full bg-slate-900 text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-slate-200 hover:bg-black transition-all">Acessar Meu Painel</button>
+               <button onClick={onSuccess} className="w-full bg-slate-900 text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-slate-200 hover:bg-black transition-all">Ir para o Painel</button>
             </div>
           )}
         </div>
