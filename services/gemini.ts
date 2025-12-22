@@ -6,6 +6,7 @@ export interface AIResponse {
   text: string;
   audioData?: string; // Base64 PCM data
   isThinking?: boolean;
+  errorType?: 'AUTH' | 'GENERAL';
 }
 
 export const getGeminiResponse = async (
@@ -17,46 +18,42 @@ export const getGeminiResponse = async (
   isVipSupport: boolean = false
 ): Promise<AIResponse> => {
   
-  // No Vercel, a API_KEY deve ser configurada nas Environment Variables do projeto.
   const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    console.error("ERRO: API_KEY não encontrada. Certifique-se de configurá-la no painel do Vercel (Environment Variables).");
-    return { text: "⚠️ Erro técnico: A chave de inteligência artificial não foi configurada no servidor." };
+    return { 
+      text: "⚠️ Sua chave de API do Google Gemini não foi detectada. Para resolver, vá ao Painel e clique em 'Configurar Chave Agora'.",
+      errorType: 'AUTH'
+    };
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  // Sempre cria uma nova instância para garantir o uso da chave mais recente do seletor
+  const ai = new GoogleGenAI({ apiKey: apiKey });
   
-  let modelName = 'gemini-3-flash-preview'; 
-  let thinkingBudget = 0;
+  // No Plano PRO usamos o Gemini 3 Pro para Qualidade Superior e Qualificação de Leads
+  let modelName = plan === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview'; 
+  let thinkingBudget = plan === 'pro' ? 32768 : 0; 
   let responseModalities: Modality[] = [Modality.TEXT];
 
-  // Lógica de Inteligência por Nível de Assinatura
+  // Se houver entrada de áudio, usamos o modelo nativo de áudio
   if (audioData) {
     modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
-    responseModalities = [Modality.TEXT]; 
-  } else if (plan === 'pro') {
-    modelName = 'gemini-3-pro-preview';
-    thinkingBudget = 16000; 
   }
 
-  // Resposta em Áudio exclusiva para Simulador Pro
+  // No Plano PRO o simulador pode responder em áudio se configurado (IA de Voz)
   if (plan === 'pro' && !isVipSupport && !audioData) {
-    responseModalities = [Modality.AUDIO];
-  }
-
-  if (plan === 'free' && history.length > 6) {
-    return { text: "⚠️ O atendimento automático foi pausado. No plano gratuito você tem um limite de 5 mensagens por lead. Faça o upgrade para continuar convertendo!" };
+    // Para fins de demonstração no simulador, alternamos ou permitimos áudio
+    // responseModalities = [Modality.AUDIO]; // Descomentar para forçar áudio no PRO
   }
 
   const systemInstruction = isVipSupport 
-    ? `Você é o estrategista VIP do ZapSeller AI. Fale sobre ROI, métricas de CoD e como escalar operações de dropshipping nacional.`
-    : `PERSONA: Vendedor humano, empático e focado em fechamento imediato.
-       PRODUTO: ${product.name} | VALOR: R$ ${product.price}
-       REGRAS: 
-       1. Sempre reforce que o cliente só paga no ato da entrega (Pagamento na Entrega/CoD).
-       2. Use escassez real (ex: 'meu estoque para o frete grátis de hoje está no fim').
-       3. Se o cliente mandar áudio, responda de forma curta e direta.
+    ? `Você é o estrategista VIP do ZapSeller AI. Ajude o usuário Pro a escalar. Fale sobre ROI e CoD.`
+    : `PERSONA: Vendedor humano de elite. Seu objetivo é FECHAR A VENDA AGORA.
+       PRODUTO: ${product.name} | PREÇO: R$ ${product.price}
+       REGRAS CRÍTICAS: 
+       1. FRETE GRÁTIS HOJE.
+       2. PAGAMENTO NA ENTREGA (CoD) - O cliente só paga quando o produto chegar na mão dele.
+       3. QUALIFICAÇÃO: Se o cliente parecer interessado, peça o endereço para agendar a entrega.
        ${customPrompt || ""}`;
 
   const contents = history.map(msg => ({
@@ -82,20 +79,12 @@ export const getGeminiResponse = async (
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
-        temperature: 0.85,
-        seed: 42,
+        temperature: 0.9,
         ...(thinkingBudget > 0 ? { 
           thinkingConfig: { thinkingBudget },
-          maxOutputTokens: 20000 
+          maxOutputTokens: 25000 
         } : {}),
-        ...(responseModalities.includes(Modality.AUDIO) ? {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
-          }
-        } : {
-          responseModalities: [Modality.TEXT]
-        })
+        responseModalities: responseModalities
       },
     });
 
@@ -108,12 +97,18 @@ export const getGeminiResponse = async (
     }
 
     return {
-      text: textOutput || "Perfeito! Qual o melhor horário para nosso entregador passar aí?",
+      text: textOutput || "Estou processando seu pedido de entrega...",
       audioData: audioOutput,
       isThinking: thinkingBudget > 0
     };
   } catch (error: any) {
-    console.error("Gemini Critical Error:", error);
-    return { text: "Estou verificando aqui no sistema... Um momento, por favor!" };
+    console.error("Gemini Error:", error);
+    if (error.message?.includes("API key") || error.message?.includes("not found")) {
+      return { 
+        text: "⚠️ Erro de Autenticação: Sua chave de API não tem permissão ou não foi selecionada. Por favor, clique em 'Configurar Chave' no topo do painel.",
+        errorType: 'AUTH'
+      };
+    }
+    return { text: "Estamos com uma instabilidade momentânea na rede do WhatsApp, mas já estou voltando!" };
   }
 };

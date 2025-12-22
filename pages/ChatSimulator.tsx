@@ -30,9 +30,11 @@ interface ChatSimulatorProps {
   customPrompt: string;
   onBack: () => void;
   onMessageSent: () => void;
+  // Added missing prop used in App.tsx
+  onConfigKey: () => void;
 }
 
-const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customPrompt, onBack, onMessageSent }) => {
+const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customPrompt, onBack, onMessageSent, onConfigKey }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', text: `Olá! 👋 Tudo bem? Com quem eu falo por aqui para começarmos o atendimento?`, timestamp: new Date() }
   ]);
@@ -121,6 +123,17 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
       
       setIsTyping(false);
       setIsThinking(false);
+
+      // Handle Authentication error by prompting for key selection
+      if (aiRes.errorType === 'AUTH') {
+        setMessages(prev => [...prev, { 
+          role: 'model', 
+          text: aiRes.text, 
+          timestamp: new Date() 
+        }]);
+        onConfigKey();
+        return;
+      }
       
       const modelMsg: Message = { 
         role: 'model', 

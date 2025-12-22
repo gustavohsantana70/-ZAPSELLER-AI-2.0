@@ -9,9 +9,12 @@ interface DashboardProps {
   accounts: WhatsAppAccount[];
   onNavigate: (status: AppStatus) => void;
   onRemoveAccount: (id: string) => void;
+  // Added missing props
+  onConfigKey: () => void;
+  hasApiKey: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNavigate, onRemoveAccount }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNavigate, onRemoveAccount, onConfigKey, hasApiKey }) => {
   const currentPlanConfig = PLANS_CONFIG[user.plan];
   const maxAccounts = currentPlanConfig.maxAccounts;
   const isAtLimit = accounts.length >= maxAccounts;
@@ -40,6 +43,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNaviga
         </div>
         
         <div className="flex items-center gap-4 bg-white p-2 rounded-[24px] shadow-sm border border-slate-100">
+          {/* Add a specific warning button if the API key is missing */}
+          {!hasApiKey && (
+            <button 
+              onClick={onConfigKey}
+              className="bg-red-500 text-white px-6 py-3 rounded-2xl font-black text-xs shadow-lg hover:bg-red-600 transition-all uppercase tracking-widest"
+            >
+              Configurar Chave Agora
+            </button>
+          )}
           <div className="px-4 py-2 border-r border-slate-100 hidden sm:block">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Mensagens IA</p>
             <p className="text-sm font-black text-slate-900">{user.messagesSent} / {maxMessages === Infinity ? '∞' : maxMessages}</p>
