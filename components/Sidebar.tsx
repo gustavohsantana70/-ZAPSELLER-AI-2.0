@@ -54,7 +54,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentStatus, onNavigate, onLo
         user.plan,
         true // Indica que é Suporte VIP
       );
-      setVipMessages(prev => [...prev, { role: 'model', text: response, timestamp: new Date() }]);
+      // Fix: Access .text from AIResponse object to satisfy Message.text string type requirement
+      setVipMessages(prev => [...prev, { role: 'model', text: response.text, timestamp: new Date() }]);
     } catch (err) {
       console.error(err);
     } finally {

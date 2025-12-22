@@ -1,8 +1,12 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
 import { Product, Message, PlanType } from "../types";
 
-const API_KEY = process.env.API_KEY || "";
+export interface AIResponse {
+  text: string;
+  audioData?: string; // Base64 PCM data
+  isThinking?: boolean;
+}
 
 export const getGeminiResponse = async (
   history: Message[],
@@ -11,76 +15,101 @@ export const getGeminiResponse = async (
   audioData?: { data: string; mimeType: string },
   plan: PlanType = 'free',
   isVipSupport: boolean = false
-): Promise<string> => {
+): Promise<AIResponse> => {
   
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  // Inicialização dinâmica para garantir o uso da chave mais recente
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   let modelName = 'gemini-3-flash-preview'; 
-  
-  if (audioData && plan === 'pro') {
-    modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
-  } else if (plan === 'pro') {
-    modelName = 'gemini-3-pro-preview';
-  }
+  let thinkingBudget = 0;
+  let responseModalities: Modality[] = [Modality.TEXT];
 
-  if (plan === 'free' && history.length > 5) {
-    return "Olá! Sou um atendente automatizado. Para um atendimento humano via IA inteligente, faça upgrade do seu plano. O valor do produto é R$ " + product.price;
-  }
-
-  let context = "";
-
-  if (isVipSupport) {
-    context = `Você é o Gerente VIP do ZapSeller. Ajude o usuário a configurar sua IA. Seja proativo.`;
-  } else {
-    context = `
-    VOCÊ É UM VENDEDOR CONSULTIVO ESPECIALISTA EM FECHAMENTO VIA WHATSAPP.
-    DADOS DO PRODUTO: ${product.name} | Preço: R$ ${product.price}
-    BENEFÍCIOS: ${product.benefits}
-    PAGAMENTO: Somente na entrega (CoD).
-    
-    ESTRATÉGIA PSICOLÓGICA DE VENDA:
-    1. CONEXÃO INICIAL: Pergunte o nome amigavelmente. Use o nome dele(a) para criar intimidade.
-    2. VALIDAÇÃO DA DOR (ESSENCIAL): Antes de vender, valide o que o cliente sente. Se ele falar de um problema, use frases como:
-       - "Eu entendo perfeitamente, [Nome]. Muita gente me procura com essa mesma frustração..."
-       - "Faz total sentido você estar inseguro(a), é normal se sentir assim quando buscamos algo que realmente funcione."
-       - "Nossa, eu imagino como isso deve estar sendo difícil para você..."
-    3. ADAPTAÇÃO DE GÊNERO: Identifique o gênero pelo nome e ajuste os adjetivos (amigo/amiga, querido/querida).
-    4. O PRODUTO COMO ALÍVIO: Apresente o ${product.name} não como uma "compra", mas como o alívio para a dor que você acabou de validar.
-    5. SEGURANÇA TOTAL (CoD): Encerre o medo do cliente reforçando: "Justamente por entender sua insegurança, nosso envio é feito com pagamento só na entrega. Você só paga quando receber."
-    
-    INSTRUÇÕES ADICIONAIS: ${customPrompt || "Use linguagem humana, cheia de emojis moderados, sem parecer um robô. Seja persuasivo mas extremamente acolhedor."}
-    
-    REGRA DE OURO: Primeiro ganhe o coração e a confiança do cliente validando a dor dele, depois apresente a solução.
-    `;
-  }
-
-  const currentParts: any[] = [];
+  // Lógica de Inteligência por Nível de Assinatura
   if (audioData) {
-    currentParts.push({ inlineData: { data: audioData.data, mimeType: audioData.mimeType } });
-    currentParts.push({ text: "O cliente enviou um áudio. Responda demonstrando muita empatia, valide a dor mencionada no áudio e adapte para o gênero dele(a)." });
-  } else {
-    currentParts.push({ text: history[history.length - 1].text });
+    // Para entradas de áudio, usamos processamento nativo
+    modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
+    responseModalities = [Modality.TEXT]; 
+  } else if (plan === 'pro') {
+    // Plano PRO usa raciocínio profundo para quebrar objeções
+    modelName = 'gemini-3-pro-preview';
+    thinkingBudget = 16000; 
   }
 
-  const contents = history.slice(0, -1).map(msg => ({
+  // Resposta em Áudio (TTS Nativo) exclusiva para Simulador Pro
+  if (plan === 'pro' && !isVipSupport && !audioData) {
+    responseModalities = [Modality.AUDIO];
+  }
+
+  if (plan === 'free' && history.length > 6) {
+    return { text: "⚠️ O atendimento automático foi pausado. No plano gratuito você tem um limite de 5 mensagens por lead. Faça o upgrade para continuar convertendo!" };
+  }
+
+  const systemInstruction = isVipSupport 
+    ? `Você é o estrategista VIP do ZapSeller AI. Fale sobre ROI, métricas de CoD e como escalar operações de dropshipping nacional.`
+    : `PERSONA: Vendedor humano, empático e focado em fechamento imediato.
+       PRODUTO: ${product.name} | VALOR: R$ ${product.price}
+       REGRAS: 
+       1. Sempre reforce que o cliente só paga no ato da entrega (Pagamento na Entrega/CoD).
+       2. Use escassez real (ex: 'meu estoque para o frete grátis de hoje está no fim').
+       3. Se o cliente mandar áudio, responda de forma curta e direta.
+       ${customPrompt || ""}`;
+
+  const contents = history.map(msg => ({
     role: msg.role === 'model' ? 'model' : 'user',
-    parts: [{ text: msg.text }]
+    parts: [{ text: msg.text }] as any[]
   }));
-  contents.push({ role: 'user', parts: currentParts });
+
+  if (audioData) {
+    const lastMsg = contents[contents.length - 1];
+    if (lastMsg && lastMsg.role === 'user') {
+      lastMsg.parts.unshift({
+        inlineData: {
+          data: audioData.data,
+          mimeType: audioData.mimeType
+        }
+      });
+    }
+  }
 
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: modelName,
       contents: contents,
       config: {
-        systemInstruction: context,
-        temperature: 0.8,
+        systemInstruction: systemInstruction,
+        temperature: 0.85,
+        seed: 42,
+        ...(thinkingBudget > 0 ? { 
+          thinkingConfig: { thinkingBudget },
+          // CRÍTICO: maxOutputTokens deve englobar o budget + a resposta final
+          maxOutputTokens: 20000 
+        } : {}),
+        ...(responseModalities.includes(Modality.AUDIO) ? {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
+          }
+        } : {
+          responseModalities: [Modality.TEXT]
+        })
       },
     });
 
-    return response.text || "Oi! Me conta seu nome primeiro para eu saber com quem estou conversando? 😊";
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    return "Tive um pequeno problema técnico, mas estou aqui! Como posso te chamar para conversarmos melhor sobre sua necessidade?";
+    let textOutput = "";
+    let audioOutput = "";
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.text) textOutput += part.text;
+      if (part.inlineData?.data) audioOutput = part.inlineData.data;
+    }
+
+    return {
+      text: textOutput || "Perfeito! Qual o melhor horário para nosso entregador passar aí?",
+      audioData: audioOutput,
+      isThinking: thinkingBudget > 0
+    };
+  } catch (error: any) {
+    console.error("Gemini Critical Error:", error);
+    return { text: "Estou verificando aqui no sistema... Um momento, por favor!" };
   }
 };

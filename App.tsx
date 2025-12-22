@@ -16,22 +16,22 @@ export const PLANS_CONFIG: Record<PlanType, any> = {
     name: 'Free', 
     maxProducts: 1, 
     maxAccounts: 1, 
-    maxMessages: 10, 
-    hasAI: false, // Foco em automação estática
+    maxMessages: 50, 
+    hasAI: false,
     hasAudioAI: false 
   },
   starter: { 
     name: 'Starter', 
-    maxProducts: 1, 
+    maxProducts: 2, 
     maxAccounts: 1, 
-    maxMessages: 500, 
+    maxMessages: 1000, 
     hasAI: true, 
     hasAudioAI: false 
   },
   pro: { 
     name: 'Pro', 
-    maxProducts: 3, 
-    maxAccounts: 5, 
+    maxProducts: 10, 
+    maxAccounts: 10, 
     maxMessages: Infinity, 
     hasAI: true, 
     hasAudioAI: true 
@@ -90,7 +90,19 @@ const App: React.FC = () => {
     setStatus(AppStatus.LANDING);
   };
 
-  const handleUpgrade = (plan: PlanType) => {
+  const handleUpgrade = async (plan: PlanType) => {
+    // Verificação de segurança da chave para Planos Pagos
+    try {
+      if (plan === 'pro' && window.aistudio) {
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          await window.aistudio.openSelectKey();
+        }
+      }
+    } catch (e) {
+      console.log("Ambiente fora do AI Studio, utilizando API_KEY de produção.");
+    }
+    
     const updatedUser = { ...user, plan };
     setUser(updatedUser);
     localStorage.setItem('zapseller_user', JSON.stringify(updatedUser));
@@ -190,5 +202,17 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+// Define AIStudio interface to fix TypeScript redeclaration errors
+interface AIStudio {
+  hasSelectedApiKey(): Promise<boolean>;
+  openSelectKey(): Promise<void>;
+}
+
+declare global {
+  interface Window {
+    aistudio: AIStudio;
+  }
+}
 
 export default App;
