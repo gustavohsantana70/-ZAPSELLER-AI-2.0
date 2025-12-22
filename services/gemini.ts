@@ -17,8 +17,15 @@ export const getGeminiResponse = async (
   isVipSupport: boolean = false
 ): Promise<AIResponse> => {
   
-  // Inicialização dinâmica para garantir o uso da chave mais recente
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // No Vercel, a API_KEY deve ser configurada nas Environment Variables do projeto.
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    console.error("ERRO: API_KEY não encontrada. Certifique-se de configurá-la no painel do Vercel (Environment Variables).");
+    return { text: "⚠️ Erro técnico: A chave de inteligência artificial não foi configurada no servidor." };
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   
   let modelName = 'gemini-3-flash-preview'; 
   let thinkingBudget = 0;
@@ -26,16 +33,14 @@ export const getGeminiResponse = async (
 
   // Lógica de Inteligência por Nível de Assinatura
   if (audioData) {
-    // Para entradas de áudio, usamos processamento nativo
     modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
     responseModalities = [Modality.TEXT]; 
   } else if (plan === 'pro') {
-    // Plano PRO usa raciocínio profundo para quebrar objeções
     modelName = 'gemini-3-pro-preview';
     thinkingBudget = 16000; 
   }
 
-  // Resposta em Áudio (TTS Nativo) exclusiva para Simulador Pro
+  // Resposta em Áudio exclusiva para Simulador Pro
   if (plan === 'pro' && !isVipSupport && !audioData) {
     responseModalities = [Modality.AUDIO];
   }
@@ -81,7 +86,6 @@ export const getGeminiResponse = async (
         seed: 42,
         ...(thinkingBudget > 0 ? { 
           thinkingConfig: { thinkingBudget },
-          // CRÍTICO: maxOutputTokens deve englobar o budget + a resposta final
           maxOutputTokens: 20000 
         } : {}),
         ...(responseModalities.includes(Modality.AUDIO) ? {

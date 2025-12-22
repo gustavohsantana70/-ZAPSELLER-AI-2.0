@@ -25,10 +25,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNaviga
             zs
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight">Painel de Vendas</h1>
-            <p className="text-slate-500 font-bold text-sm">Status: 
+            <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight">Painel de Controle</h1>
+            <p className="text-slate-500 font-bold text-sm">Status da Operação: 
                <span className={`ml-2 px-3 py-0.5 rounded-full text-[10px] uppercase font-black tracking-widest ${user.plan === 'free' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-600'}`}>
-                 {user.plan === 'free' ? 'Automação Limitada' : `Vendedor ${user.plan.toUpperCase()} Ativo`}
+                 {user.plan === 'free' ? 'Modo Manual' : `IA Ativa - Plano ${user.plan.toUpperCase()}`}
                </span>
             </p>
           </div>
@@ -36,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNaviga
         
         <div className="flex items-center gap-4 bg-white p-2 rounded-[24px] shadow-sm border border-slate-100">
           <div className="px-4 py-2 border-r border-slate-100 hidden sm:block">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Créditos IA</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Mensagens IA</p>
             <p className="text-sm font-black text-slate-900">{user.messagesSent} / {maxMessages === Infinity ? '∞' : maxMessages}</p>
           </div>
           {user.plan !== 'pro' && (
@@ -50,12 +50,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNaviga
         </div>
       </header>
 
-      {/* Main Grid */}
       <div className="grid lg:grid-cols-12 gap-10">
-        
-        {/* Left Column: Stats and Product */}
         <div className="lg:col-span-8 space-y-10">
-          
           {/* Stats Box */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
@@ -85,84 +81,102 @@ const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNaviga
                     <i className="fas fa-robot"></i>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight">Cérebro IA Configurado</h2>
-                    <p className="text-emerald-400 font-bold text-xs uppercase tracking-widest">{product.name}</p>
+                    <h2 className="text-2xl font-black tracking-tight">Configuração da IA</h2>
+                    <p className="text-emerald-400 font-bold text-xs uppercase tracking-widest">Produto Ativo: {product.name}</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => onNavigate(AppStatus.PRODUCT_CONFIG)}
                   className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-2xl font-black text-xs border border-white/10 uppercase tracking-widest transition-all"
                 >
-                  Editar Treinamento
+                  Treinar Minha IA
                 </button>
               </div>
 
               <div className="grid md:grid-cols-2 gap-10">
                 <div className="p-6 bg-white/5 rounded-[32px] border border-white/10">
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-3">Status do Vendedor</p>
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-3">Vendas Automáticas</p>
                   <div className="flex items-center gap-3">
                     <span className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.8)]"></span>
-                    <span className="font-black text-xl">Venda Ativa 24h</span>
+                    <span className="font-black text-xl">Monitorando Leads</span>
                   </div>
                 </div>
                 <div className="p-6 bg-white/5 rounded-[32px] border border-white/10">
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-3">Método Ativo</p>
-                  <div className="flex items-center gap-3">
-                    <i className="fas fa-truck-fast text-xl text-white"></i>
-                    <span className="font-black text-xl">Pagamento na Entrega</span>
-                  </div>
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-3">Simulador</p>
+                  <button onClick={() => onNavigate(AppStatus.SIMULATOR)} className="text-white font-black hover:text-emerald-400 transition-colors flex items-center gap-2">
+                    Testar Chat Agora <i className="fas fa-arrow-right text-xs"></i>
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Tester Card */}
-          <div className="bg-white p-10 rounded-[48px] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8 group cursor-pointer hover:border-emerald-200 transition-all" onClick={() => onNavigate(AppStatus.SIMULATOR)}>
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[32px] flex items-center justify-center text-3xl shadow-inner group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                <i className="fab fa-whatsapp"></i>
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Testar Conversa IA</h3>
-                <p className="text-slate-500 font-medium">Veja como seu vendedor virtual responde aos leads.</p>
-              </div>
-            </div>
-            <i className="fas fa-arrow-right text-slate-200 text-2xl group-hover:text-emerald-500 transition-all group-hover:translate-x-2"></i>
           </div>
         </div>
 
-        {/* Right Column: Accounts */}
-        <div className="lg:col-span-4 space-y-10">
-          <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm h-full flex flex-col">
-            <div className="flex items-center justify-between mb-10">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Números</h2>
-              <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1 rounded-full uppercase tracking-widest">{accounts.length} / {maxAccounts}</span>
+        {/* Central de Instâncias */}
+        <div className="lg:col-span-4">
+          <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm h-full flex flex-col">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none">Minhas Contas</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Slots: {accounts.length}/{maxAccounts}</p>
+              </div>
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                <i className="fab fa-whatsapp text-xl"></i>
+              </div>
             </div>
 
             <div className="space-y-4 flex-1">
-              {accounts.map(acc => (
-                <div key={acc.id} className="p-5 bg-slate-50 rounded-[32px] flex items-center gap-4 group hover:bg-white border border-transparent hover:border-emerald-100 transition-all">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-600 text-xl shadow-sm">
-                    <i className="fab fa-whatsapp"></i>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-black text-slate-900 uppercase tracking-widest truncate">{acc.name}</p>
-                    <p className="text-sm text-slate-400 font-bold truncate">{acc.number}</p>
-                  </div>
-                  <button onClick={() => onRemoveAccount(acc.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-200 hover:text-red-500 transition-all">
-                    <i className="fas fa-trash"></i>
-                  </button>
+              {accounts.length === 0 ? (
+                <div className="text-center py-10 px-4 bg-slate-50 rounded-[32px] border border-dashed border-slate-200">
+                  <p className="text-slate-400 text-sm font-medium mb-4">Nenhum número conectado ainda.</p>
+                  <button onClick={() => onNavigate(AppStatus.WHATSAPP_CONNECT)} className="text-emerald-600 font-black text-xs uppercase tracking-widest hover:underline">Vincular Agora</button>
                 </div>
-              ))}
+              ) : (
+                accounts.map(acc => (
+                  <div key={acc.id} className="p-5 bg-slate-50 rounded-[32px] border border-transparent hover:border-emerald-100 transition-all group relative overflow-hidden">
+                    <div className="flex items-center gap-4 relative z-10">
+                      <div className="relative">
+                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-600 text-xl shadow-sm">
+                          <i className="fab fa-whatsapp"></i>
+                        </div>
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-black text-slate-900 uppercase tracking-widest truncate">{acc.name}</p>
+                        <p className="text-[11px] text-slate-400 font-bold truncate">{acc.number}</p>
+                      </div>
+                      <button onClick={() => onRemoveAccount(acc.id)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all">
+                        <i className="fas fa-unlink text-sm"></i>
+                      </button>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
+                       <span className="text-emerald-600">IA Conectada</span>
+                       <span className="text-slate-300">Sincronizado</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
-            <button 
-              onClick={() => onNavigate(AppStatus.WHATSAPP_CONNECT)}
-              disabled={isAtLimit}
-              className={`w-full mt-10 py-5 rounded-[24px] font-black transition-all text-sm uppercase tracking-widest ${isAtLimit ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-black shadow-xl'}`}
-            >
-              {isAtLimit ? 'Limite de Números' : 'Conectar Novo Número'}
-            </button>
+            {!isAtLimit && (
+              <button 
+                onClick={() => onNavigate(AppStatus.WHATSAPP_CONNECT)}
+                className="w-full mt-8 bg-slate-900 text-white py-5 rounded-[24px] font-black hover:bg-black transition-all text-xs uppercase tracking-widest shadow-xl shadow-slate-200 flex items-center justify-center gap-3"
+              >
+                <i className="fas fa-plus text-[10px]"></i>
+                Conectar WhatsApp
+              </button>
+            )}
+            
+            {isAtLimit && user.plan !== 'pro' && (
+              <button 
+                onClick={() => onNavigate(AppStatus.PRICING)}
+                className="w-full mt-8 bg-amber-400 text-slate-900 py-5 rounded-[24px] font-black hover:bg-amber-300 transition-all text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3"
+              >
+                <i className="fas fa-crown text-[10px]"></i>
+                Liberar Mais Slots
+              </button>
+            )}
           </div>
         </div>
       </div>
