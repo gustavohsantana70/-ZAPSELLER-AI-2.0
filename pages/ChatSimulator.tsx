@@ -43,6 +43,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
   const [recordingTime, setRecordingTime] = useState(0);
   const [leadStatus, setLeadStatus] = useState<'frio' | 'morno' | 'quente'>('frio');
   const [confirmedOrder, setConfirmedOrder] = useState<any>(null);
+  const [needsKey, setNeedsKey] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -52,6 +53,29 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
 
   const currentPlan = PLANS_CONFIG[user.plan];
   const isAtLimit = user.messagesSent >= currentPlan.maxMessages;
+
+  useEffect(() => {
+    // Check if key is present on mount
+    if (!(window as any).process?.env?.API_KEY) {
+      checkKey();
+    }
+  }, []);
+
+  const checkKey = async () => {
+    if ((window as any).aistudio) {
+      const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+      if (!hasKey && !process.env.API_KEY) setNeedsKey(true);
+    }
+  };
+
+  const handleOpenKeySelector = async () => {
+    if ((window as any).aistudio) {
+      await (window as any).aistudio.openSelectKey();
+      setNeedsKey(false);
+      // Recarregar conversa para tentar novamente
+      setMessages([{ role: 'model', text: "Chave configurada! Como posso te ajudar agora?", timestamp: new Date() }]);
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -111,6 +135,10 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
       setIsTyping(false);
       setIsThinking(false);
       
+      if (res.needsKey) {
+        setNeedsKey(true);
+      }
+
       if (res.orderConfirmed) {
         setConfirmedOrder(res.orderConfirmed);
         setLeadStatus('quente');
@@ -191,6 +219,20 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
           </div>
         </div>
       </header>
+
+      {/* Warning if Key Missing */}
+      {needsKey && (
+        <div className="bg-amber-500 text-white p-3 text-center text-xs font-bold flex items-center justify-center gap-4 animate-in slide-in-from-top duration-500 z-30">
+          <i className="fas fa-key"></i>
+          Configuração da IA Pendente: Selecione sua chave de acesso.
+          <button 
+            onClick={handleOpenKeySelector}
+            className="bg-white text-amber-600 px-3 py-1 rounded-lg uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-colors"
+          >
+            Configurar Agora
+          </button>
+        </div>
+      )}
 
       {/* Chat Area */}
       <div 
@@ -273,8 +315,8 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
                 <input 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Envie sua dúvida ou interesse..."
-                  disabled={isTyping || isThinking}
+                  placeholder={needsKey ? "Configure a chave para conversar..." : "Envie sua dúvida ou interesse..."}
+                  disabled={isTyping || isThinking || needsKey}
                   className="flex-1 bg-transparent py-3 outline-none text-[15px] font-medium"
                 />
               </>
@@ -284,8 +326,9 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
             type="button"
             onMouseDown={startRecording}
             onMouseUp={() => mediaRecorderRef.current?.stop()}
-            onClick={input.trim() ? () => handleSend(null) : undefined}
-            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all ${isRecording ? 'bg-red-500 scale-110' : 'bg-[#075e54]'} text-white`}
+            onClick={input.trim() && !needsKey ? () => handleSend(null) : undefined}
+            disabled={needsKey}
+            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all ${needsKey ? 'bg-slate-300 opacity-50' : (isRecording ? 'bg-red-500 scale-110' : 'bg-[#075e54]')} text-white`}
           >
             <i className={input.trim() && !isRecording ? "fas fa-paper-plane" : (isRecording ? "fas fa-stop" : "fas fa-microphone")}></i>
           </button>
