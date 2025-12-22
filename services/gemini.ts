@@ -7,7 +7,6 @@ export interface AIResponse {
   audioData?: string; 
   isThinking?: boolean;
   orderConfirmed?: any;
-  needsKey?: boolean;
 }
 
 const confirmOrderTool: FunctionDeclaration = {
@@ -34,7 +33,8 @@ export const getGeminiResponse = async (
 ): Promise<AIResponse> => {
   
   const apiKey = process.env.API_KEY;
-  if (!apiKey) return { text: "Chave de API não configurada.", needsKey: true };
+  // Se a chave não estiver no ambiente, o sistema falhará silenciosamente para o dev resolver no deploy
+  if (!apiKey) return { text: "O serviço de atendimento está passando por uma atualização rápida. Por favor, tente novamente em alguns segundos." };
 
   const ai = new GoogleGenAI({ apiKey });
   let modelName = plan === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
@@ -43,33 +43,26 @@ export const getGeminiResponse = async (
   let strategyInstructions = "";
   switch(product.salesStrategy) {
     case 'digital':
-      strategyInstructions = `VOCÊ VENDE UM PRODUTO DIGITAL/INFOPRODUTO. 
-        - Link de checkout: ${product.checkoutUrl || 'Link pendente'}.
-        - Chame confirmOrder quando ele quiser comprar.`;
+      strategyInstructions = `VOCÊ VENDE UM PRODUTO DIGITAL. Link: ${product.checkoutUrl || 'Link pendente'}.`;
       break;
     case 'service':
-      strategyInstructions = `VOCÊ VENDE UM SERVIÇO/CONSULTORIA.
-        - Qualifique o lead e peça os requisitos.
-        - Chame confirmOrder para agendamento.`;
+      strategyInstructions = `VOCÊ VENDE UM SERVIÇO. Qualifique o lead e use confirmOrder para o orçamento.`;
       break;
     case 'physical_prepaid':
-      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO COM PAGAMENTO ANTECIPADO.
-        - Envie o link ou Pix: ${product.pixKey || 'Pendente'}.
-        - Chame confirmOrder na confirmação de pagamento.`;
+      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO COM PAGAMENTO ANTECIPADO. Pix/Link: ${product.pixKey || 'Pendente'}.`;
       break;
     default:
-      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO COM PAGAMENTO NA ENTREGA (CoD).
-        - Peça nome e endereço completo.
-        - Chame confirmOrder assim que ele passar o endereço.`;
+      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO COM PAGAMENTO NA ENTREGA (CoD). Peça o endereço.`;
   }
 
   const systemInstruction = isVipSupport 
-    ? `Você é o estrategista sênior do ZapSeller IA. Ajude o usuário a escalar.`
-    : `VOCÊ É UM VENDEDOR HUMANO DE ALTA PERFORMANCE.
-       PRODUTO: ${product.name} | VALOR: R$ ${product.price}.
-       BENEFÍCIOS: ${product.benefits}.
-       ${strategyInstructions}
-       REGRAS: Use emojis, seja direto. ${customPrompt || ""}`;
+    ? `Você é o estrategista do ZapSeller. Ajude o usuário.`
+    : `Você é um vendedor humano de alta performance no WhatsApp. 
+       PRODUTO: ${product.name}. 
+       VALOR: R$ ${product.price}. 
+       REGRAS: Seja direto, use emojis, não pareça um robô. 
+       ${strategyInstructions} 
+       ${customPrompt || ""}`;
 
   const contents = history.map(msg => ({
     role: msg.role === 'model' ? 'model' : 'user',
@@ -79,11 +72,13 @@ export const getGeminiResponse = async (
   try {
     const config: any = {
       systemInstruction,
-      temperature: 0.9,
+      temperature: 0.8,
       tools: [{ functionDeclarations: [confirmOrderTool] }]
     };
 
-    if (plan === 'pro' && !audioData) config.thinkingConfig = { thinkingBudget: 16000 };
+    if (plan === 'pro' && !audioData) {
+      config.thinkingConfig = { thinkingBudget: 4000 };
+    }
 
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: modelName,
@@ -100,22 +95,18 @@ export const getGeminiResponse = async (
       if (part.inlineData?.data) audioOutput = part.inlineData.data;
       if (part.functionCall) {
         orderDetails = { ...part.functionCall.args, strategy: product.salesStrategy };
-        textOutput = "Pedido em processamento! Verifique as informações acima.";
+        textOutput = "Pedido em processamento! Verifique as informações.";
       }
     }
 
     return {
-      text: textOutput || "Como posso ajudar você a finalizar?",
+      text: textOutput || "Pode me falar mais sobre sua dúvida?",
       audioData: audioOutput,
       isThinking: !!config.thinkingConfig,
       orderConfirmed: orderDetails
     };
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    const errorMsg = error.message || "";
-    if (errorMsg.includes("Requested entity was not found") || errorMsg.includes("API key")) {
-      return { text: "Erro na Chave de API. Por favor, reconfigure sua chave de acesso.", needsKey: true };
-    }
-    return { text: "O sistema de IA está sendo reiniciado. Por favor, aguarde um momento ou verifique sua conexão." };
+    console.error("Gemini Error:", error);
+    return { text: "O vendedor está ocupado no momento. Por favor, envie a mensagem novamente." };
   }
 };

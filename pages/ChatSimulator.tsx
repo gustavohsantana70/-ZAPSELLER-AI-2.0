@@ -43,7 +43,6 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
   const [recordingTime, setRecordingTime] = useState(0);
   const [leadStatus, setLeadStatus] = useState<'frio' | 'morno' | 'quente'>('frio');
   const [confirmedOrder, setConfirmedOrder] = useState<any>(null);
-  const [needsKey, setNeedsKey] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -53,29 +52,6 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
 
   const currentPlan = PLANS_CONFIG[user.plan];
   const isAtLimit = user.messagesSent >= currentPlan.maxMessages;
-
-  useEffect(() => {
-    // Check if key is present on mount
-    if (!(window as any).process?.env?.API_KEY) {
-      checkKey();
-    }
-  }, []);
-
-  const checkKey = async () => {
-    if ((window as any).aistudio) {
-      const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-      if (!hasKey && !process.env.API_KEY) setNeedsKey(true);
-    }
-  };
-
-  const handleOpenKeySelector = async () => {
-    if ((window as any).aistudio) {
-      await (window as any).aistudio.openSelectKey();
-      setNeedsKey(false);
-      // Recarregar conversa para tentar novamente
-      setMessages([{ role: 'model', text: "Chave configurada! Como posso te ajudar agora?", timestamp: new Date() }]);
-    }
-  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -117,7 +93,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
 
     const userMessage: Message = { 
       role: 'user', 
-      text: audioIn ? "🎤 Áudio" : textToSend, 
+      text: audioIn ? "🎤 Áudio Enviado" : textToSend, 
       timestamp: new Date(),
       audioUrl: audioUrl
     };
@@ -135,10 +111,6 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
       setIsTyping(false);
       setIsThinking(false);
       
-      if (res.needsKey) {
-        setNeedsKey(true);
-      }
-
       if (res.orderConfirmed) {
         setConfirmedOrder(res.orderConfirmed);
         setLeadStatus('quente');
@@ -157,6 +129,11 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
     } catch (error) {
       setIsTyping(false);
       setIsThinking(false);
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        text: "Opa, tive um probleminha na conexão aqui. Pode repetir?", 
+        timestamp: new Date() 
+      }]);
     }
   };
 
@@ -220,20 +197,6 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
         </div>
       </header>
 
-      {/* Warning if Key Missing */}
-      {needsKey && (
-        <div className="bg-amber-500 text-white p-3 text-center text-xs font-bold flex items-center justify-center gap-4 animate-in slide-in-from-top duration-500 z-30">
-          <i className="fas fa-key"></i>
-          Configuração da IA Pendente: Selecione sua chave de acesso.
-          <button 
-            onClick={handleOpenKeySelector}
-            className="bg-white text-amber-600 px-3 py-1 rounded-lg uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-colors"
-          >
-            Configurar Agora
-          </button>
-        </div>
-      )}
-
       {/* Chat Area */}
       <div 
         ref={scrollRef}
@@ -243,7 +206,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-[12px] p-2.5 shadow-sm relative ${msg.role === 'user' ? 'bg-[#dcf8c6] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
-              {msg.audioUrl && (
+              {msg.audioUrl && msg.audioUrl !== 'ai-voice' && (
                 <div className="mb-1 p-2 bg-black/5 rounded-xl flex items-center gap-3 border border-black/5 min-w-[200px]">
                   <i className="fas fa-play text-[#075e54]"></i>
                   <div className="flex-1 h-1 bg-black/10 rounded-full overflow-hidden">
@@ -252,7 +215,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
                   <i className="fab fa-whatsapp text-emerald-600"></i>
                 </div>
               )}
-              <p className="text-[14px] leading-snug text-slate-800 font-medium">{msg.text}</p>
+              <p className="text-[14px] leading-snug text-slate-800 font-medium whitespace-pre-wrap">{msg.text}</p>
               <div className="flex justify-end mt-1">
                 <span className="text-[9px] text-slate-400 font-bold">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
@@ -264,7 +227,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
           <div className="flex justify-start animate-in fade-in slide-in-from-left-4">
             <div className="bg-slate-900 text-amber-400 rounded-2xl px-5 py-3 shadow-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 border-l-4 border-amber-500">
               <i className="fas fa-bolt animate-pulse"></i>
-              IA ESTRATÉGICA: Analisando perfil do comprador...
+              IA ESTRATÉGICA: Analisando melhor oferta...
             </div>
           </div>
         )}
@@ -315,8 +278,8 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
                 <input 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={needsKey ? "Configure a chave para conversar..." : "Envie sua dúvida ou interesse..."}
-                  disabled={isTyping || isThinking || needsKey}
+                  placeholder="Escreva sua mensagem..."
+                  disabled={isTyping || isThinking}
                   className="flex-1 bg-transparent py-3 outline-none text-[15px] font-medium"
                 />
               </>
@@ -326,9 +289,8 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
             type="button"
             onMouseDown={startRecording}
             onMouseUp={() => mediaRecorderRef.current?.stop()}
-            onClick={input.trim() && !needsKey ? () => handleSend(null) : undefined}
-            disabled={needsKey}
-            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all ${needsKey ? 'bg-slate-300 opacity-50' : (isRecording ? 'bg-red-500 scale-110' : 'bg-[#075e54]')} text-white`}
+            onClick={input.trim() && !isRecording ? () => handleSend(null) : undefined}
+            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all ${isRecording ? 'bg-red-500 scale-110' : 'bg-[#075e54]'} text-white`}
           >
             <i className={input.trim() && !isRecording ? "fas fa-paper-plane" : (isRecording ? "fas fa-stop" : "fas fa-microphone")}></i>
           </button>
