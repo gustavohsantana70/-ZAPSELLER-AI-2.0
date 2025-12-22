@@ -6,7 +6,6 @@ export interface AIResponse {
   text: string;
   audioData?: string; // Base64 PCM data
   isThinking?: boolean;
-  errorType?: 'AUTH' | 'GENERAL';
 }
 
 export const getGeminiResponse = async (
@@ -18,13 +17,12 @@ export const getGeminiResponse = async (
   isVipSupport: boolean = false
 ): Promise<AIResponse> => {
   
+  // No Vercel, a API_KEY deve ser configurada nas Environment Variables do projeto.
   const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    return { 
-      text: "⚠️ Chave de API não detectada. Por favor, clique no botão 'Configurar Chave' no painel.",
-      errorType: 'AUTH'
-    };
+    console.error("ERRO: API_KEY não encontrada. Certifique-se de configurá-la no painel do Vercel (Environment Variables).");
+    return { text: "⚠️ Erro técnico: A chave de inteligência artificial não foi configurada no servidor." };
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -33,8 +31,10 @@ export const getGeminiResponse = async (
   let thinkingBudget = 0;
   let responseModalities: Modality[] = [Modality.TEXT];
 
+  // Lógica de Inteligência por Nível de Assinatura
   if (audioData) {
     modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
+    responseModalities = [Modality.TEXT]; 
   } else if (plan === 'pro') {
     modelName = 'gemini-3-pro-preview';
     thinkingBudget = 16000; 
@@ -108,18 +108,12 @@ export const getGeminiResponse = async (
     }
 
     return {
-      text: textOutput || "Estou processando seu pedido...",
+      text: textOutput || "Perfeito! Qual o melhor horário para nosso entregador passar aí?",
       audioData: audioOutput,
       isThinking: thinkingBudget > 0
     };
   } catch (error: any) {
     console.error("Gemini Critical Error:", error);
-    if (error.message?.includes("Requested entity was not found") || error.message?.includes("API key")) {
-      return { 
-        text: "⚠️ Falha de Autenticação: Sua chave de API expirou ou não foi encontrada. Clique em 'Configurar Chave'.",
-        errorType: 'AUTH'
-      };
-    }
     return { text: "Estou verificando aqui no sistema... Um momento, por favor!" };
   }
 };

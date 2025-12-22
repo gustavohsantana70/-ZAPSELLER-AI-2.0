@@ -70,7 +70,6 @@ const App: React.FC = () => {
   
   const [customPrompt, setCustomPrompt] = useState<string>(DEFAULT_PROMPT);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [hasApiKey, setHasApiKey] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('zapseller_user');
@@ -78,32 +77,7 @@ const App: React.FC = () => {
       setUser(JSON.parse(savedUser));
       setStatus(AppStatus.DASHBOARD);
     }
-    checkApiKey();
   }, []);
-
-  const checkApiKey = async () => {
-    try {
-      const win = window as any;
-      if (win.aistudio) {
-        const has = await win.aistudio.hasSelectedApiKey();
-        setHasApiKey(has);
-      }
-    } catch (e) {
-      setHasApiKey(!!process.env.API_KEY);
-    }
-  };
-
-  const handleSelectKey = async () => {
-    try {
-      const win = window as any;
-      if (win.aistudio) {
-        await win.aistudio.openSelectKey();
-        setHasApiKey(true);
-      }
-    } catch (e) {
-      console.error("Ambiente não suporta seletor de chave.");
-    }
-  };
 
   const handleLogin = (email: string) => {
     const newUser: User = { email, isLoggedIn: true, plan: 'free', messagesSent: 0 };
@@ -119,9 +93,18 @@ const App: React.FC = () => {
   };
 
   const handleUpgrade = async (plan: PlanType) => {
-    if (plan === 'pro') {
-      await handleSelectKey();
+    try {
+      const win = window as any;
+      if (plan === 'pro' && win.aistudio) {
+        const hasKey = await win.aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          await win.aistudio.openSelectKey();
+        }
+      }
+    } catch (e) {
+      console.log("Ambiente fora do AI Studio, utilizando API_KEY de produção.");
     }
+    
     const updatedUser = { ...user, plan };
     setUser(updatedUser);
     localStorage.setItem('zapseller_user', JSON.stringify(updatedUser));
@@ -165,17 +148,7 @@ const App: React.FC = () => {
       case AppStatus.AUTH:
         return <AuthPage onLogin={handleLogin} onBack={() => setStatus(AppStatus.LANDING)} />;
       case AppStatus.DASHBOARD:
-        return (
-          <Dashboard 
-            user={user} 
-            product={activeProduct} 
-            accounts={accounts} 
-            onNavigate={setStatus} 
-            onRemoveAccount={(id) => setAccounts(a => a.filter(acc => acc.id !== id))}
-            onConfigKey={handleSelectKey}
-            hasApiKey={hasApiKey}
-          />
-        );
+        return <Dashboard user={user} product={activeProduct} accounts={accounts} onNavigate={setStatus} onRemoveAccount={(id) => setAccounts(a => a.filter(acc => acc.id !== id))} />;
       case AppStatus.PRODUCT_CONFIG:
         return (
           <ProductConfig 
@@ -198,7 +171,6 @@ const App: React.FC = () => {
             customPrompt={customPrompt} 
             onBack={() => setStatus(AppStatus.DASHBOARD)} 
             onMessageSent={() => setUser(prev => ({ ...prev, messagesSent: prev.messagesSent + 1 }))}
-            onConfigKey={handleSelectKey}
           />
         );
       case AppStatus.REPORTS:

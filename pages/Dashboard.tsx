@@ -9,11 +9,9 @@ interface DashboardProps {
   accounts: WhatsAppAccount[];
   onNavigate: (status: AppStatus) => void;
   onRemoveAccount: (id: string) => void;
-  onConfigKey?: () => void;
-  hasApiKey?: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNavigate, onRemoveAccount, onConfigKey, hasApiKey }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNavigate, onRemoveAccount }) => {
   const currentPlanConfig = PLANS_CONFIG[user.plan];
   const maxAccounts = currentPlanConfig.maxAccounts;
   const isAtLimit = accounts.length >= maxAccounts;
@@ -21,26 +19,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNaviga
 
   return (
     <div className="p-4 md:p-10 max-w-7xl mx-auto space-y-10 pb-24">
-      {!hasApiKey && (
-        <div className="bg-amber-50 border border-amber-200 p-6 rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-amber-400 text-slate-900 rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-amber-200">
-              <i className="fas fa-key"></i>
-            </div>
-            <div>
-              <h3 className="text-slate-900 font-black text-sm">IA Desconectada</h3>
-              <p className="text-slate-500 text-xs font-bold">Você precisa configurar sua chave de API do Google Gemini para ativar o vendedor virtual.</p>
-            </div>
-          </div>
-          <button 
-            onClick={onConfigKey}
-            className="bg-amber-400 hover:bg-amber-500 text-slate-900 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-amber-200"
-          >
-            Configurar Chave Agora
-          </button>
-        </div>
-      )}
-
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           <div className="bg-emerald-600 w-16 h-16 rounded-[24px] flex items-center justify-center text-white font-black text-3xl italic tracking-tighter shadow-xl shadow-emerald-200">
