@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 interface WhatsAppConnectProps {
-  onSuccess: () => void;
+  onSuccess: (data: { number: string; name: string }) => void;
   onBack: () => void;
 }
 
@@ -11,6 +11,8 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [qrKey, setQrKey] = useState(Date.now());
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [instanceName, setInstanceName] = useState('Atendimento Principal');
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `> ${msg}`].slice(-6));
@@ -36,8 +38,14 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
   };
 
   const simulateScan = () => {
+    if (phoneNumber.length < 10) {
+      addLog("ERRO: Número de telefone inválido.");
+      alert("Por favor, insira um número de telefone válido antes de ativar.");
+      return;
+    }
+
     setLoading(true);
-    addLog("Comando de bypass manual recebido...");
+    addLog(`Vinculando número: ${phoneNumber}...`);
     
     setTimeout(() => addLog("Sincronizando banco de dados local..."), 600);
     setTimeout(() => addLog("Protegendo credenciais de acesso..."), 1200);
@@ -88,8 +96,7 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
             <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
                <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mb-2"><i className="fas fa-shield-alt mr-2"></i>Ambiente Protegido</p>
                <p className="text-white/40 text-[10px] leading-relaxed font-sans font-medium">
-                 Para sua segurança, este sistema de testes não acessa dados reais do seu dispositivo. 
-                 Use a <b>Ativação Manual</b> para garantir o funcionamento da IA.
+                 O modo manual permite vincular seu número diretamente ao nosso cérebro de IA sem necessidade de leitura física de tela.
                </p>
             </div>
           </div>
@@ -118,38 +125,42 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
           )}
 
           {step === 2 && (
-            <div className="space-y-8 animate-in fade-in duration-500 w-full flex flex-col items-center">
-              <div className="relative group">
-                <div className={`w-64 h-64 bg-white shadow-2xl rounded-[48px] p-8 border border-slate-100 flex items-center justify-center transition-all overflow-hidden ${loading ? 'opacity-30 blur-sm' : 'opacity-100'}`}>
-                   <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=ZapSeller-Security-${qrKey}`} 
-                      alt="QR Code Simulado" 
-                      className="w-full h-full object-contain pointer-events-none opacity-10 grayscale"
-                  />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-white/60 backdrop-blur-[4px]">
-                    <div className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl">
-                      MODO SEGURO
-                    </div>
-                    <p className="text-slate-600 text-[10px] mt-3 font-bold max-w-[140px] leading-tight font-sans">Acesse via Ativação Manual para proteger seus dados.</p>
-                  </div>
-                </div>
-                {loading && (
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                   </div>
-                )}
-              </div>
-              
+            <div className="space-y-6 animate-in fade-in duration-500 w-full flex flex-col items-center">
               <div className="w-full max-w-xs space-y-4">
+                 <div className="space-y-1.5 text-left">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identificação da Instância</label>
+                    <input 
+                      type="text"
+                      value={instanceName}
+                      onChange={(e) => setInstanceName(e.target.value)}
+                      placeholder="Ex: Atendimento Suporte"
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm font-bold text-slate-800"
+                    />
+                 </div>
+
+                 <div className="space-y-1.5 text-left">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Seu Número de WhatsApp</label>
+                    <div className="relative">
+                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">+55</span>
+                      <input 
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                        placeholder="(00) 00000-0000"
+                        className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm font-bold text-slate-800"
+                      />
+                    </div>
+                 </div>
+
                  <button 
                   onClick={simulateScan} 
-                  disabled={loading}
-                  className="w-full bg-emerald-600 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all disabled:opacity-50 animate-pulse"
+                  disabled={loading || phoneNumber.length < 10}
+                  className="w-full bg-emerald-600 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all disabled:opacity-50"
                  >
                    {loading ? 'Validando...' : 'Ativar Instância Manual'}
                    <i className="fas fa-shield-check"></i>
                  </button>
-                 <p className="text-slate-400 text-[9px] font-bold font-sans">Clique no botão para concluir a conexão sem expor seu número real.</p>
+                 <p className="text-slate-400 text-[9px] font-bold font-sans">Ao clicar, você autoriza a IA a gerenciar o fluxo de mensagens neste número.</p>
               </div>
             </div>
           )}
@@ -162,9 +173,16 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) 
                </div>
                <div>
                   <h2 className="text-3xl font-black text-slate-900 leading-tight mb-2 tracking-tight">Sucesso!</h2>
-                  <p className="text-slate-500 text-sm font-bold font-sans">Ambiente isolado e conectado. Sua IA já pode começar a vender no simulador.</p>
+                  <p className="text-slate-500 text-sm font-bold font-sans">
+                    O número <b>+55 {phoneNumber}</b> foi vinculado com sucesso à instância <b>{instanceName}</b>.
+                  </p>
                </div>
-               <button onClick={onSuccess} className="w-full bg-slate-900 text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-slate-200 hover:bg-black transition-all">Ir para o Painel</button>
+               <button 
+                 onClick={() => onSuccess({ number: `+55 ${phoneNumber}`, name: instanceName })} 
+                 className="w-full bg-slate-900 text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-slate-200 hover:bg-black transition-all"
+               >
+                 Ir para o Painel
+               </button>
             </div>
           )}
         </div>

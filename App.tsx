@@ -115,15 +115,15 @@ const App: React.FC = () => {
     }
   };
 
-  const addAccount = () => {
+  const addAccount = (details?: { number: string; name: string }) => {
     const currentPlan = PLANS_CONFIG[user.plan];
     if (accounts.length < currentPlan.maxAccounts) {
       const newAcc: WhatsAppAccount = {
         id: Math.random().toString(36).substr(2, 9),
-        name: `Atendimento WhatsApp ${accounts.length + 1}`,
-        number: `+55 (11) 9${Math.floor(10000000 + Math.random() * 90000000)}`,
+        name: details?.name || `Atendimento WhatsApp ${accounts.length + 1}`,
+        number: details?.number || `+55 (11) 9${Math.floor(10000000 + Math.random() * 90000000)}`,
         status: 'connected',
-        lastActivity: 'Ativo'
+        lastActivity: 'Conectado Agora'
       };
       setAccounts([...accounts, newAcc]);
     }
@@ -164,7 +164,7 @@ const App: React.FC = () => {
       case AppStatus.REPORTS:
         return <ReportsPage user={user} onBack={() => setStatus(AppStatus.DASHBOARD)} />;
       case AppStatus.WHATSAPP_CONNECT:
-        return <WhatsAppConnect onSuccess={() => { addAccount(); setStatus(AppStatus.DASHBOARD); }} onBack={() => setStatus(AppStatus.DASHBOARD)} />;
+        return <WhatsAppConnect onSuccess={(data) => { addAccount(data); setStatus(AppStatus.DASHBOARD); }} onBack={() => setStatus(AppStatus.DASHBOARD)} />;
       case AppStatus.PRICING:
         return <PricingPage currentPlan={user.plan} onSelectPlan={handleUpgrade} onBack={() => setStatus(AppStatus.DASHBOARD)} />;
       default:
