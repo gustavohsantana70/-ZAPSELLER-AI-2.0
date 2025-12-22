@@ -1,8 +1,8 @@
 
 import { defineConfig } from 'vite';
 
-// Capturamos a chave de forma isolada e segura.
-const envKey = String(process.env.API_KEY || "");
+// A chave fornecida é injetada aqui. O sistema prioriza a variável de ambiente se existir.
+const envKey = String(process.env.API_KEY || "AIzaSyAbGKJte4L0msR1tNDrFnWieGeeiC5JJVU");
 
 export default defineConfig({
   server: {
@@ -11,8 +11,6 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     target: 'esnext',
-    // Aumentamos o limite para 1600kb para evitar o aviso de tamanho de chunk
-    // causado por bibliotecas pesadas como a do Google GenAI.
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
@@ -27,7 +25,7 @@ export default defineConfig({
     include: ['react', 'react-dom', '@google/genai'],
   },
   define: {
-    // Injeta apenas a string da chave, protegendo o restante do process.env
+    // Injeta a chave de forma global na aplicação
     'process.env.API_KEY': JSON.stringify(envKey)
   }
 });

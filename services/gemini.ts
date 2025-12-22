@@ -33,36 +33,37 @@ export const getGeminiResponse = async (
 ): Promise<AIResponse> => {
   
   const apiKey = process.env.API_KEY;
-  // Se a chave não estiver no ambiente, o sistema falhará silenciosamente para o dev resolver no deploy
-  if (!apiKey) return { text: "O serviço de atendimento está passando por uma atualização rápida. Por favor, tente novamente em alguns segundos." };
+  if (!apiKey) return { text: "O vendedor está finalizando outro atendimento. Aguarde um instante." };
 
   const ai = new GoogleGenAI({ apiKey });
-  let modelName = plan === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+  // Priorizamos modelos de alta performance para o Micro-SaaS
+  let modelName = 'gemini-3-flash-preview'; 
+  if (plan === 'pro') modelName = 'gemini-3-pro-preview';
   if (audioData) modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
 
   let strategyInstructions = "";
   switch(product.salesStrategy) {
     case 'digital':
-      strategyInstructions = `VOCÊ VENDE UM PRODUTO DIGITAL. Link: ${product.checkoutUrl || 'Link pendente'}.`;
+      strategyInstructions = `VOCÊ VENDE UM PRODUTO DIGITAL. Foque na entrega imediata via e-mail. Link: ${product.checkoutUrl || 'Checkout Ativo'}.`;
       break;
     case 'service':
-      strategyInstructions = `VOCÊ VENDE UM SERVIÇO. Qualifique o lead e use confirmOrder para o orçamento.`;
+      strategyInstructions = `VOCÊ VENDE UM SERVIÇO. Foque em autoridade e qualificação. Peça os dados para orçamento.`;
       break;
     case 'physical_prepaid':
-      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO COM PAGAMENTO ANTECIPADO. Pix/Link: ${product.pixKey || 'Pendente'}.`;
+      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO COM PAGAMENTO ANTECIPADO. Destaque o envio imediato após Pix: ${product.pixKey || 'Chave Pix Ativa'}.`;
       break;
     default:
-      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO COM PAGAMENTO NA ENTREGA (CoD). Peça o endereço.`;
+      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO NO MODELO COD (PAGAMENTO NA ENTREGA). Este é seu maior trunfo: o cliente só paga quando receber em casa. Peça o endereço completo para fechar.`;
   }
 
   const systemInstruction = isVipSupport 
-    ? `Você é o estrategista do ZapSeller. Ajude o usuário.`
-    : `Você é um vendedor humano de alta performance no WhatsApp. 
-       PRODUTO: ${product.name}. 
-       VALOR: R$ ${product.price}. 
-       REGRAS: Seja direto, use emojis, não pareça um robô. 
-       ${strategyInstructions} 
-       ${customPrompt || ""}`;
+    ? `Você é o estrategista sênior do ZapSeller. Sua missão é fazer o usuário lucrar.`
+    : `ATUE COMO UM VENDEDOR HUMANO REAL NO WHATSAPP.
+       PRODUTO: ${product.name} | VALOR: R$ ${product.price}.
+       ESTILO: Persuasivo, amigável, usa emojis, usa frases curtas. 
+       OBJETIVO: Levar ao fechamento rápido. 
+       ${strategyInstructions}
+       PERSONALIDADE ADICIONAL: ${customPrompt || "Foque na segurança do cliente."}`;
 
   const contents = history.map(msg => ({
     role: msg.role === 'model' ? 'model' : 'user',
@@ -72,12 +73,12 @@ export const getGeminiResponse = async (
   try {
     const config: any = {
       systemInstruction,
-      temperature: 0.8,
+      temperature: 0.85,
       tools: [{ functionDeclarations: [confirmOrderTool] }]
     };
 
     if (plan === 'pro' && !audioData) {
-      config.thinkingConfig = { thinkingBudget: 4000 };
+      config.thinkingConfig = { thinkingBudget: 8000 };
     }
 
     const response: GenerateContentResponse = await ai.models.generateContent({
@@ -95,18 +96,18 @@ export const getGeminiResponse = async (
       if (part.inlineData?.data) audioOutput = part.inlineData.data;
       if (part.functionCall) {
         orderDetails = { ...part.functionCall.args, strategy: product.salesStrategy };
-        textOutput = "Pedido em processamento! Verifique as informações.";
+        textOutput = "Pedido em processamento! Verifique as informações acima para confirmarmos seu envio.";
       }
     }
 
     return {
-      text: textOutput || "Pode me falar mais sobre sua dúvida?",
+      text: textOutput || "Estou aqui para tirar suas dúvidas, como posso ajudar?",
       audioData: audioOutput,
       isThinking: !!config.thinkingConfig,
       orderConfirmed: orderDetails
     };
   } catch (error: any) {
-    console.error("Gemini Error:", error);
-    return { text: "O vendedor está ocupado no momento. Por favor, envie a mensagem novamente." };
+    console.error("Gemini Critical Error:", error);
+    return { text: "O sistema de IA está sendo sincronizado. Por favor, reenvie sua mensagem em 2 segundos." };
   }
 };
