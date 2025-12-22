@@ -32,9 +32,12 @@ interface ChatSimulatorProps {
   onMessageSent: () => void;
   // Added missing prop used in App.tsx
   onConfigKey: () => void;
+  // Added missing prop used in App.tsx to fix TypeScript error
+  onApiKeyError: () => void;
 }
 
-const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customPrompt, onBack, onMessageSent, onConfigKey }) => {
+// Added onApiKeyError to the component parameters
+const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customPrompt, onBack, onMessageSent, onConfigKey, onApiKeyError }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', text: `Olá! 👋 Tudo bem? Com quem eu falo por aqui para começarmos o atendimento?`, timestamp: new Date() }
   ]);
@@ -132,6 +135,8 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
           timestamp: new Date() 
         }]);
         onConfigKey();
+        // Call the missing onApiKeyError prop to update parent component state
+        onApiKeyError();
         return;
       }
       

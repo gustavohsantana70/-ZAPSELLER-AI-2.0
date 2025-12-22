@@ -4,9 +4,9 @@ import { Product, Message, PlanType } from "../types";
 
 export interface AIResponse {
   text: string;
-  audioData?: string; // Base64 PCM data
+  audioData?: string; 
   isThinking?: boolean;
-  errorType?: 'AUTH' | 'GENERAL';
+  errorType?: 'AUTH' | 'GENERAL' | 'NOT_FOUND';
 }
 
 export const getGeminiResponse = async (
@@ -22,56 +22,37 @@ export const getGeminiResponse = async (
   
   if (!apiKey) {
     return { 
-      text: "⚠️ Sua chave de API do Google Gemini não foi detectada. Para resolver, vá ao Painel e clique em 'Configurar Chave Agora'.",
+      text: "⚠️ Chave de API não configurada. Selecione sua chave clicando no botão de aviso no topo.",
       errorType: 'AUTH'
     };
   }
 
-  // Sempre cria uma nova instância para garantir o uso da chave mais recente do seletor
-  const ai = new GoogleGenAI({ apiKey: apiKey });
+  // Cria nova instância para garantir o uso da chave atualizada
+  const ai = new GoogleGenAI({ apiKey });
   
-  // No Plano PRO usamos o Gemini 3 Pro para Qualidade Superior e Qualificação de Leads
-  let modelName = plan === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview'; 
-  let thinkingBudget = plan === 'pro' ? 32768 : 0; 
-  let responseModalities: Modality[] = [Modality.TEXT];
+  // No Pro usamos o Gemini 3 Pro (Requer projeto com Billing ativo)
+  // No Free/Starter usamos o Flash
+  let modelName = (plan === 'pro' || isVipSupport) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview'; 
+  let thinkingBudget = (plan === 'pro') ? 16000 : 0; 
 
-  // Se houver entrada de áudio, usamos o modelo nativo de áudio
   if (audioData) {
     modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
   }
 
-  // No Plano PRO o simulador pode responder em áudio se configurado (IA de Voz)
-  if (plan === 'pro' && !isVipSupport && !audioData) {
-    // Para fins de demonstração no simulador, alternamos ou permitimos áudio
-    // responseModalities = [Modality.AUDIO]; // Descomentar para forçar áudio no PRO
-  }
-
   const systemInstruction = isVipSupport 
-    ? `Você é o estrategista VIP do ZapSeller AI. Ajude o usuário Pro a escalar. Fale sobre ROI e CoD.`
-    : `PERSONA: Vendedor humano de elite. Seu objetivo é FECHAR A VENDA AGORA.
-       PRODUTO: ${product.name} | PREÇO: R$ ${product.price}
-       REGRAS CRÍTICAS: 
+    ? `Você é o estrategista VIP do ZapSeller AI. Explique como configurar chaves de API e escalar vendas no WhatsApp.`
+    : `PERSONA: Vendedor de WhatsApp ultra-persuasivo. 
+       PRODUTO: ${product.name} | VALOR: R$ ${product.price}
+       REGRAS: 
        1. FRETE GRÁTIS HOJE.
-       2. PAGAMENTO NA ENTREGA (CoD) - O cliente só paga quando o produto chegar na mão dele.
-       3. QUALIFICAÇÃO: Se o cliente parecer interessado, peça o endereço para agendar a entrega.
+       2. PAGAMENTO NA ENTREGA (CoD).
+       3. Peça o endereço para fechar o pedido assim que o cliente mostrar interesse.
        ${customPrompt || ""}`;
 
   const contents = history.map(msg => ({
     role: msg.role === 'model' ? 'model' : 'user',
     parts: [{ text: msg.text }] as any[]
   }));
-
-  if (audioData) {
-    const lastMsg = contents[contents.length - 1];
-    if (lastMsg && lastMsg.role === 'user') {
-      lastMsg.parts.unshift({
-        inlineData: {
-          data: audioData.data,
-          mimeType: audioData.mimeType
-        }
-      });
-    }
-  }
 
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
@@ -80,35 +61,34 @@ export const getGeminiResponse = async (
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.9,
-        ...(thinkingBudget > 0 ? { 
-          thinkingConfig: { thinkingBudget },
-          maxOutputTokens: 25000 
-        } : {}),
-        responseModalities: responseModalities
+        ...(thinkingBudget > 0 ? { thinkingConfig: { thinkingBudget } } : {}),
       },
     });
 
-    let textOutput = "";
-    let audioOutput = "";
-
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.text) textOutput += part.text;
-      if (part.inlineData?.data) audioOutput = part.inlineData.data;
-    }
-
     return {
-      text: textOutput || "Estou processando seu pedido de entrega...",
-      audioData: audioOutput,
+      text: response.text || "Entendido. Como podemos prosseguir com seu pedido?",
       isThinking: thinkingBudget > 0
     };
   } catch (error: any) {
-    console.error("Gemini Error:", error);
-    if (error.message?.includes("API key") || error.message?.includes("not found")) {
+    console.error("Gemini API Error:", error);
+    
+    const errorMsg = error.message || "";
+    
+    // Se o erro for 'Requested entity was not found', a chave não tem acesso ao modelo Gemini 3 Pro
+    if (errorMsg.includes("Requested entity was not found")) {
       return { 
-        text: "⚠️ Erro de Autenticação: Sua chave de API não tem permissão ou não foi selecionada. Por favor, clique em 'Configurar Chave' no topo do painel.",
+        text: "⚠️ Erro de Permissão: Sua chave de API não tem acesso a este modelo. Verifique se o faturamento está ativo no Google Cloud.",
+        errorType: 'NOT_FOUND'
+      };
+    }
+    
+    if (errorMsg.includes("API key") || errorMsg.includes("invalid")) {
+      return { 
+        text: "⚠️ Chave Inválida: O código da chave de API está incorreto ou expirou.",
         errorType: 'AUTH'
       };
     }
-    return { text: "Estamos com uma instabilidade momentânea na rede do WhatsApp, mas já estou voltando!" };
+
+    return { text: "Estou processando seu pedido de entrega CoD. Pode me confirmar seu bairro?" };
   }
 };
