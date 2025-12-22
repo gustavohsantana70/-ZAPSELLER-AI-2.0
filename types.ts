@@ -1,5 +1,6 @@
 
 export type PlanType = 'free' | 'starter' | 'pro';
+export type SalesStrategy = 'physical_cod' | 'physical_prepaid' | 'digital' | 'service';
 
 export interface Plan {
   type: PlanType;
@@ -18,6 +19,9 @@ export interface Product {
   price: string;
   benefits: string;
   paymentMethod: string;
+  salesStrategy: SalesStrategy;
+  checkoutUrl?: string;
+  pixKey?: string;
 }
 
 export interface User {

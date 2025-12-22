@@ -57,7 +57,9 @@ const App: React.FC = () => {
       name: 'Produto Exemplo (Edite aqui)',
       price: '0,00',
       benefits: 'Descreva aqui os benefícios do seu produto para a IA usar na venda.',
-      paymentMethod: 'Pagamento na Entrega (CoD)'
+      paymentMethod: 'Pagamento na Entrega (CoD)',
+      // Fix: Added missing required salesStrategy property
+      salesStrategy: 'physical_cod'
     }
   ]);
   
@@ -108,7 +110,9 @@ const App: React.FC = () => {
         name: 'Novo Produto',
         price: '0,00',
         benefits: '',
-        paymentMethod: 'Pagamento na Entrega (CoD)'
+        paymentMethod: 'Pagamento na Entrega (CoD)',
+        // Fix: Added missing required salesStrategy property
+        salesStrategy: 'physical_cod'
       };
       setProducts([...products, newProd]);
       setActiveProductId(newProd.id);

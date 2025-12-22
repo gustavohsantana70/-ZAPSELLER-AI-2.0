@@ -48,7 +48,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user, currentStatus, onNavigate, onLo
     try {
       const response = await getGeminiResponse(
         newHistory,
-        { id: '', name: '', price: '', benefits: '', paymentMethod: '' }, // Produto vazio para suporte
+        // Fix: Added missing required salesStrategy property to the dummy product object
+        { id: '', name: '', price: '', benefits: '', paymentMethod: '', salesStrategy: 'service' }, // Produto vazio para suporte
         undefined,
         undefined,
         user.plan,
