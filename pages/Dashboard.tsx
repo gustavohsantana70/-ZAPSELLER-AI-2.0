@@ -30,6 +30,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNaviga
                <span className={`ml-2 px-3 py-0.5 rounded-full text-[10px] uppercase font-black tracking-widest ${user.plan === 'free' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-600'}`}>
                  {user.plan === 'free' ? 'Modo Manual' : `IA Ativa - Plano ${user.plan.toUpperCase()}`}
                </span>
+               {user.plan === 'pro' && (
+                 <span className="ml-2 px-3 py-0.5 rounded-full text-[10px] uppercase font-black tracking-widest bg-amber-100 text-amber-600">
+                   Qualidade Máxima
+                 </span>
+               )}
             </p>
           </div>
         </div>
@@ -95,16 +100,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNaviga
 
               <div className="grid md:grid-cols-2 gap-10">
                 <div className="p-6 bg-white/5 rounded-[32px] border border-white/10">
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-3">Vendas Automáticas</p>
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-3">Qualificação Automática</p>
                   <div className="flex items-center gap-3">
                     <span className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.8)]"></span>
-                    <span className="font-black text-xl">Monitorando Leads</span>
+                    <span className="font-black text-xl">IA {user.plan === 'pro' ? 'Qualidade Máxima' : 'Ativa'}</span>
                   </div>
                 </div>
                 <div className="p-6 bg-white/5 rounded-[32px] border border-white/10">
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-3">Simulador</p>
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-3">Checkout Integrado</p>
                   <button onClick={() => onNavigate(AppStatus.SIMULATOR)} className="text-white font-black hover:text-emerald-400 transition-colors flex items-center gap-2">
-                    Testar Chat Agora <i className="fas fa-arrow-right text-xs"></i>
+                    {user.plan === 'pro' ? 'Checkout CoD Ativo' : 'Testar Chat Agora'} <i className="fas fa-arrow-right text-xs"></i>
                   </button>
                 </div>
               </div>

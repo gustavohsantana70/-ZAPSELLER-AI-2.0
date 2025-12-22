@@ -50,12 +50,13 @@ const PricingPage: React.FC<PricingPageProps> = ({ currentPlan, onSelectPlan, on
       price: 'R$ 39,90/mês',
       description: 'Tecnologia de ponta para dominar o mercado',
       features: [
-        'Até 10 Números Conectados',
-        'IA de Voz Full (Ouve e Responde)',
-        'Mensagens ILIMITADAS',
+        '10 Números de WhatsApp',
+        'IA de Texto Ilimitada (Qualidade)',
+        'Mensagens IA ILIMITADAS',
         'Treinamento para 10 Produtos',
-        'Raciocínio Estratégico (Thinking)',
-        'Gerente VIP de Escala CoD'
+        'Qualificação Automática de Leads',
+        'Checkout CoD Integrado',
+        'IA de Voz Full (Ouve e Responde)'
       ],
       aiFeature: true,
       buttonText: 'Escalar Agora',
@@ -122,11 +123,15 @@ const PricingPage: React.FC<PricingPageProps> = ({ currentPlan, onSelectPlan, on
                 <p className={`text-sm mt-4 font-medium italic ${plan.id === 'pro' ? 'text-slate-400' : 'text-slate-500'}`}>{plan.description}</p>
               </div>
 
-              <div className="flex-1 space-y-4 mb-10">
+              <div className="flex-1 space-y-5 mb-10">
                 {plan.features.map((feature, i) => (
-                  <div key={i} className="flex items-start gap-3 text-sm font-bold">
-                    <i className={`fas fa-check-circle mt-0.5 text-base ${plan.id === 'pro' ? 'text-emerald-400' : 'text-emerald-500'}`}></i>
-                    <span className={plan.id === 'pro' ? 'text-slate-100' : 'text-slate-700'}>{feature}</span>
+                  <div key={i} className="flex items-center gap-4">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm">
+                      <i className="fas fa-check text-[10px] text-white"></i>
+                    </div>
+                    <span className={`text-[15px] font-black leading-tight ${plan.id === 'pro' ? 'text-slate-100' : 'text-slate-700'}`}>
+                      {feature}
+                    </span>
                   </div>
                 ))}
               </div>

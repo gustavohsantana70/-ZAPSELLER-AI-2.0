@@ -34,7 +34,9 @@ export const PLANS_CONFIG: Record<PlanType, any> = {
     maxAccounts: 10, 
     maxMessages: Infinity, 
     hasAI: true, 
-    hasAudioAI: true 
+    hasAudioAI: true,
+    hasAutoQualification: true,
+    hasCodCheckout: true
   },
 };
 
@@ -91,9 +93,7 @@ const App: React.FC = () => {
   };
 
   const handleUpgrade = async (plan: PlanType) => {
-    // Verificação de segurança da chave para Planos Pagos
     try {
-      // Accessing aistudio from window safely to avoid global type conflicts
       const win = window as any;
       if (plan === 'pro' && win.aistudio) {
         const hasKey = await win.aistudio.hasSelectedApiKey();
