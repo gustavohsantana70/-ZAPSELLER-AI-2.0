@@ -30,14 +30,10 @@ interface ChatSimulatorProps {
   customPrompt: string;
   onBack: () => void;
   onMessageSent: () => void;
-  // Added missing prop used in App.tsx
-  onConfigKey: () => void;
-  // Added missing prop used in App.tsx to fix TypeScript error
-  onApiKeyError: () => void;
+  onConfigKey?: () => void;
 }
 
-// Added onApiKeyError to the component parameters
-const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customPrompt, onBack, onMessageSent, onConfigKey, onApiKeyError }) => {
+const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customPrompt, onBack, onMessageSent, onConfigKey }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', text: `Olá! 👋 Tudo bem? Com quem eu falo por aqui para começarmos o atendimento?`, timestamp: new Date() }
   ]);
@@ -47,6 +43,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [leadStatus, setLeadStatus] = useState<'frio' | 'morno' | 'quente'>('frio');
+  const [authError, setAuthError] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -127,17 +124,8 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
       setIsTyping(false);
       setIsThinking(false);
 
-      // Handle Authentication error by prompting for key selection
       if (aiRes.errorType === 'AUTH') {
-        setMessages(prev => [...prev, { 
-          role: 'model', 
-          text: aiRes.text, 
-          timestamp: new Date() 
-        }]);
-        onConfigKey();
-        // Call the missing onApiKeyError prop to update parent component state
-        onApiKeyError();
-        return;
+        setAuthError(true);
       }
       
       const modelMsg: Message = { 
@@ -242,6 +230,22 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
         <div className="flex justify-center mb-6">
            <span className="bg-[#e1f3fb] text-[#54656f] text-[11px] font-bold px-4 py-1.5 rounded-xl shadow-sm uppercase tracking-widest">Criptografia de ponta a ponta</span>
         </div>
+
+        {authError && (
+          <div className="flex justify-center mb-6 animate-in zoom-in">
+             <div className="bg-amber-100 border border-amber-300 p-6 rounded-[24px] text-center max-w-xs shadow-xl">
+                <i className="fas fa-key text-amber-600 text-3xl mb-4"></i>
+                <h3 className="text-slate-900 font-black text-sm mb-2">Chave API Necessária</h3>
+                <p className="text-slate-600 text-xs font-bold mb-4">A conexão com a inteligência artificial requer uma chave válida.</p>
+                <button 
+                  onClick={() => { onConfigKey?.(); setAuthError(false); }}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                   Configurar Chave
+                </button>
+             </div>
+          </div>
+        )}
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>

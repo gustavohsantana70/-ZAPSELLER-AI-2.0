@@ -4,9 +4,9 @@ import { Product, Message, PlanType } from "../types";
 
 export interface AIResponse {
   text: string;
-  audioData?: string; 
+  audioData?: string; // Base64 PCM data
   isThinking?: boolean;
-  errorType?: 'AUTH' | 'GENERAL' | 'NOT_FOUND';
+  errorType?: 'AUTH' | 'GENERAL';
 }
 
 export const getGeminiResponse = async (
@@ -22,31 +22,41 @@ export const getGeminiResponse = async (
   
   if (!apiKey) {
     return { 
-      text: "⚠️ Chave de API não configurada. Selecione sua chave clicando no botão de aviso no topo.",
+      text: "⚠️ Chave de API não detectada. Por favor, clique no botão 'Configurar Chave' no painel.",
       errorType: 'AUTH'
     };
   }
 
-  // Cria nova instância para garantir o uso da chave atualizada
   const ai = new GoogleGenAI({ apiKey });
   
-  // No Pro usamos o Gemini 3 Pro (Requer projeto com Billing ativo)
-  // No Free/Starter usamos o Flash
-  let modelName = (plan === 'pro' || isVipSupport) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview'; 
-  let thinkingBudget = (plan === 'pro') ? 16000 : 0; 
+  let modelName = 'gemini-3-flash-preview'; 
+  let thinkingBudget = 0;
+  let responseModalities: Modality[] = [Modality.TEXT];
 
   if (audioData) {
     modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
+  } else if (plan === 'pro') {
+    modelName = 'gemini-3-pro-preview';
+    thinkingBudget = 16000; 
+  }
+
+  // Resposta em Áudio exclusiva para Simulador Pro
+  if (plan === 'pro' && !isVipSupport && !audioData) {
+    responseModalities = [Modality.AUDIO];
+  }
+
+  if (plan === 'free' && history.length > 6) {
+    return { text: "⚠️ O atendimento automático foi pausado. No plano gratuito você tem um limite de 5 mensagens por lead. Faça o upgrade para continuar convertendo!" };
   }
 
   const systemInstruction = isVipSupport 
-    ? `Você é o estrategista VIP do ZapSeller AI. Explique como configurar chaves de API e escalar vendas no WhatsApp.`
-    : `PERSONA: Vendedor de WhatsApp ultra-persuasivo. 
+    ? `Você é o estrategista VIP do ZapSeller AI. Fale sobre ROI, métricas de CoD e como escalar operações de dropshipping nacional.`
+    : `PERSONA: Vendedor humano, empático e focado em fechamento imediato.
        PRODUTO: ${product.name} | VALOR: R$ ${product.price}
        REGRAS: 
-       1. FRETE GRÁTIS HOJE.
-       2. PAGAMENTO NA ENTREGA (CoD).
-       3. Peça o endereço para fechar o pedido assim que o cliente mostrar interesse.
+       1. Sempre reforce que o cliente só paga no ato da entrega (Pagamento na Entrega/CoD).
+       2. Use escassez real (ex: 'meu estoque para o frete grátis de hoje está no fim').
+       3. Se o cliente mandar áudio, responda de forma curta e direta.
        ${customPrompt || ""}`;
 
   const contents = history.map(msg => ({
@@ -54,41 +64,62 @@ export const getGeminiResponse = async (
     parts: [{ text: msg.text }] as any[]
   }));
 
+  if (audioData) {
+    const lastMsg = contents[contents.length - 1];
+    if (lastMsg && lastMsg.role === 'user') {
+      lastMsg.parts.unshift({
+        inlineData: {
+          data: audioData.data,
+          mimeType: audioData.mimeType
+        }
+      });
+    }
+  }
+
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: modelName,
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
-        temperature: 0.9,
-        ...(thinkingBudget > 0 ? { thinkingConfig: { thinkingBudget } } : {}),
+        temperature: 0.85,
+        seed: 42,
+        ...(thinkingBudget > 0 ? { 
+          thinkingConfig: { thinkingBudget },
+          maxOutputTokens: 20000 
+        } : {}),
+        ...(responseModalities.includes(Modality.AUDIO) ? {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
+          }
+        } : {
+          responseModalities: [Modality.TEXT]
+        })
       },
     });
 
+    let textOutput = "";
+    let audioOutput = "";
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.text) textOutput += part.text;
+      if (part.inlineData?.data) audioOutput = part.inlineData.data;
+    }
+
     return {
-      text: response.text || "Entendido. Como podemos prosseguir com seu pedido?",
+      text: textOutput || "Estou processando seu pedido...",
+      audioData: audioOutput,
       isThinking: thinkingBudget > 0
     };
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    
-    const errorMsg = error.message || "";
-    
-    // Se o erro for 'Requested entity was not found', a chave não tem acesso ao modelo Gemini 3 Pro
-    if (errorMsg.includes("Requested entity was not found")) {
+    console.error("Gemini Critical Error:", error);
+    if (error.message?.includes("Requested entity was not found") || error.message?.includes("API key")) {
       return { 
-        text: "⚠️ Erro de Permissão: Sua chave de API não tem acesso a este modelo. Verifique se o faturamento está ativo no Google Cloud.",
-        errorType: 'NOT_FOUND'
-      };
-    }
-    
-    if (errorMsg.includes("API key") || errorMsg.includes("invalid")) {
-      return { 
-        text: "⚠️ Chave Inválida: O código da chave de API está incorreto ou expirou.",
+        text: "⚠️ Falha de Autenticação: Sua chave de API expirou ou não foi encontrada. Clique em 'Configurar Chave'.",
         errorType: 'AUTH'
       };
     }
-
-    return { text: "Estou processando seu pedido de entrega CoD. Pode me confirmar seu bairro?" };
+    return { text: "Estou verificando aqui no sistema... Um momento, por favor!" };
   }
 };
