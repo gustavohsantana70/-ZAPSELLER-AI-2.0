@@ -80,7 +80,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ currentPlan, onSelectPlan, on
             <i className="fas fa-arrow-left"></i> Voltar ao Dashboard
           </button>
           <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tighter text-center w-full">Sua escala começa aqui.</h1>
-          <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium">Automatize 100% do seu atendimento no WhatsApp com a tecnologia do Google Gemini.</p>
+          <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium">Automatize 100% do seu atendimento no WhatsApp com tecnologia de ponta.</p>
         </header>
 
         <div className="grid md:grid-cols-3 gap-8 items-stretch">

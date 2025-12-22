@@ -82,7 +82,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, product, accounts, onNaviga
                   </div>
                   <div>
                     <h2 className="text-2xl font-black tracking-tight">Vendedor Virtual Ativo</h2>
-                    <p className="text-emerald-400 font-bold text-xs uppercase tracking-widest">IA treinada com Google Gemini</p>
+                    <p className="text-emerald-400 font-bold text-xs uppercase tracking-widest">IA de Elite configurada e pronta</p>
                   </div>
                 </div>
                 <button 

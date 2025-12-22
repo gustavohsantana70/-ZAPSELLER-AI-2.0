@@ -69,7 +69,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onLogin }) => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            IA Vendedora 24h com Google Gemini
+            IA Vendedora de Elite 24h Ativa
           </div>
           
           <h1 className="text-5xl md:text-7xl font-black text-slate-900 leading-[1.1] mb-8 tracking-tight">
@@ -94,7 +94,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onLogin }) => {
         <div className="max-w-7xl mx-auto px-4">
           <header className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-4">A tecnologia de elite do CoD</h2>
-            <p className="text-lg text-slate-500 font-medium">Focada no mercado brasileiro, otimizada para Gemini 2.5 e 3.</p>
+            <p className="text-lg text-slate-500 font-medium">Focada no mercado brasileiro, otimizada para máxima conversão.</p>
           </header>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -103,7 +103,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onLogin }) => {
               { icon: 'fa-microphone', title: 'IA de Voz Bidirecional', desc: 'No plano Pro, sua IA ouve os áudios dos clientes e responde também em áudio humanizado.' },
               { icon: 'fa-truck-fast', title: 'Domínio do CoD', desc: 'Especializada em converter leads para pagamento na entrega, aumentando o ROI em até 300%.' },
               { icon: 'fa-layer-group', title: 'Escala Multi-Números', desc: 'Conecte até 10 números de WhatsApp simultaneamente para tráfego pesado no plano Pro.' },
-              { icon: 'fa-bolt', title: 'Raciocínio Estratégico', desc: 'Usa a capacidade de pensamento do Gemini para planejar a melhor resposta em negociações.' },
+              { icon: 'fa-bolt', title: 'Raciocínio Estratégico', desc: 'Usa a capacidade avançada de processamento para planejar a melhor resposta em negociações.' },
               { icon: 'fa-chart-line', title: 'Funil de Alta Precisão', desc: 'Saiba exatamente onde seus clientes estão travando e melhore seu lucro em tempo real.' },
             ].map((feature, i) => (
               <div key={i} className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 hover:scale-[1.02] transition-all group">
@@ -235,7 +235,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onLogin }) => {
             </div>
           </div>
           <p className="text-slate-400 font-bold text-sm max-w-sm mx-auto mb-10 mt-6 leading-relaxed">
-            Potencializado pela Inteligência Artificial do Google Gemini.
+            Potencializado pela Inteligência Artificial de última geração.
           </p>
           <p className="text-xs text-slate-300 font-medium">© 2025 ZapSeller AI. Todos os direitos reservados.</p>
         </div>

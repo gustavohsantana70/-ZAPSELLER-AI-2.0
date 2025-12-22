@@ -41,7 +41,7 @@ export const getGeminiResponse = async (
   }
 
   const systemInstruction = isVipSupport 
-    ? `Você é o estrategista de vendas do ZapSeller AI. Forneça conselhos de ROI e escala.`
+    ? `Você é o estrategista de vendas do ZapSeller IA. Forneça conselhos de ROI e escala.`
     : `PERSONA: Vendedor humano focado em fechamento CoD.
        PRODUTO: ${product.name} | VALOR: R$ ${product.price}
        REGRAS: 
