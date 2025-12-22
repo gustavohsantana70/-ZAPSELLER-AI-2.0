@@ -93,10 +93,12 @@ const App: React.FC = () => {
   const handleUpgrade = async (plan: PlanType) => {
     // Verificação de segurança da chave para Planos Pagos
     try {
-      if (plan === 'pro' && window.aistudio) {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
+      // Accessing aistudio from window safely to avoid global type conflicts
+      const win = window as any;
+      if (plan === 'pro' && win.aistudio) {
+        const hasKey = await win.aistudio.hasSelectedApiKey();
         if (!hasKey) {
-          await window.aistudio.openSelectKey();
+          await win.aistudio.openSelectKey();
         }
       }
     } catch (e) {
@@ -202,17 +204,5 @@ const App: React.FC = () => {
     </div>
   );
 };
-
-// Define AIStudio interface to fix TypeScript redeclaration errors
-interface AIStudio {
-  hasSelectedApiKey(): Promise<boolean>;
-  openSelectKey(): Promise<void>;
-}
-
-declare global {
-  interface Window {
-    aistudio: AIStudio;
-  }
-}
 
 export default App;
