@@ -1,6 +1,5 @@
 
-import React, { useState } from 'react';
-import { AppStatus } from '../types';
+import React, { useState, useEffect } from 'react';
 
 interface WhatsAppConnectProps {
   onSuccess: () => void;
@@ -9,124 +8,166 @@ interface WhatsAppConnectProps {
 
 const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ onSuccess, onBack }) => {
   const [step, setStep] = useState(1);
+  const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showConfirmButton, setShowConfirmButton] = useState(false);
+  const [qrKey, setQrKey] = useState(Date.now());
 
-  const handleGenerateQR = () => {
-    setLoading(true);
-    setStep(2);
-    setTimeout(() => {
-      setLoading(false);
-      setTimeout(() => setShowConfirmButton(true), 2000);
-    }, 1500);
+  const addLog = (msg: string) => {
+    setLogs(prev => [...prev, `> ${msg}`].slice(-6));
   };
 
-  const handleSimulateScan = () => {
+  const runConnectionSequence = () => {
     setLoading(true);
+    setStep(2);
+    
+    const sequence = [
+      { msg: "Iniciando gateway de conexão...", delay: 500 },
+      { msg: "Gerando par de chaves RSA-2048...", delay: 1200 },
+      { msg: "Aguardando handshake do dispositivo...", delay: 2000 },
+      { msg: "Terminal pronto para ativação manual.", delay: 2500 },
+    ];
+
+    sequence.forEach((item, index) => {
+      setTimeout(() => {
+        addLog(item.msg);
+        if (index === sequence.length - 1) setLoading(false);
+      }, item.delay);
+    });
+  };
+
+  const simulateScan = () => {
+    setLoading(true);
+    addLog("Comando de bypass detectado...");
+    
+    setTimeout(() => addLog("Sincronizando banco de dados de leads..."), 800);
+    setTimeout(() => addLog("Injetando protocolos de IA vendedora..."), 1600);
+    setTimeout(() => addLog("Instância vinculada com sucesso."), 2400);
+    
     setTimeout(() => {
       setLoading(false);
       setStep(3);
-    }, 2000);
+    }, 3000);
   };
 
+  useEffect(() => {
+    if (step === 2 && !loading) {
+      const interval = setInterval(() => setQrKey(Date.now()), 15000);
+      return () => clearInterval(interval);
+    }
+  }, [step, loading]);
+
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white max-w-4xl w-full rounded-[48px] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-100 min-h-[600px]">
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4 font-mono">
+      <div className="max-w-5xl w-full bg-[#111] rounded-[40px] border border-white/10 shadow-[0_0_50px_rgba(16,185,129,0.1)] overflow-hidden flex flex-col md:flex-row">
         
-        <div className="p-10 md:p-14 flex-1 space-y-10 bg-emerald-900 text-white flex flex-col justify-center relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="bg-white/10 w-12 h-12 rounded-2xl flex items-center justify-center text-white text-2xl border border-white/10">
-                <i className="fab fa-whatsapp"></i>
-              </div>
-              <h1 className="text-3xl font-black tracking-tight leading-none uppercase">Conectar<br/>Atendimento</h1>
+        {/* Left Side: Terminal Info */}
+        <div className="p-10 md:p-16 flex-1 bg-gradient-to-br from-emerald-950/40 to-black">
+          <div className="flex items-center gap-4 mb-12">
+            <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+              <i className="fab fa-whatsapp"></i>
             </div>
-            <p className="text-emerald-200 font-medium leading-relaxed max-w-xs">
-              Conecte sua instância para ativar a inteligência artificial de vendas.
-            </p>
+            <h2 className="text-white text-2xl font-black tracking-tighter uppercase leading-none">
+              Nexus<br/><span className="text-emerald-500">Gateway</span>
+            </h2>
           </div>
 
-          <div className="space-y-6 relative z-10">
-            {[
-              { step: '01', text: 'Abra o WhatsApp no celular' },
-              { step: '02', text: 'Vá em Aparelhos Conectados' },
-              { step: '03', text: 'Aponte a câmera para o código' },
-              { step: '04', text: 'Aguarde a sincronização da IA' }
-            ].map((item, i) => (
-              <div key={i} className="flex gap-5 items-center">
-                <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-xs text-emerald-400">{item.step}</div>
-                <p className="text-emerald-100 text-sm font-bold opacity-80">{item.text}</p>
-              </div>
-            ))}
+          <div className="space-y-8">
+            <div className="p-6 bg-black/40 rounded-3xl border border-emerald-500/20">
+               <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">Console de Status</span>
+               </div>
+               <div className="space-y-2">
+                  {logs.length === 0 && <p className="text-white/20 text-xs italic">Aguardando comando de inicialização...</p>}
+                  {logs.map((log, i) => (
+                    <p key={i} className="text-emerald-400/80 text-[11px] leading-none animate-in fade-in slide-in-from-left-2">{log}</p>
+                  ))}
+               </div>
+            </div>
+
+            <div className="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+               <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mb-2"><i className="fas fa-info-circle mr-2"></i>Como Conectar</p>
+               <p className="text-white/60 text-[10px] leading-relaxed">
+                 Este é um ambiente de <b>desenvolvimento</b>. O QR Code ao lado é ilustrativo. Para testar o sistema, clique em <b>"Ativar Instância Manual"</b> no painel ao lado.
+               </p>
+            </div>
           </div>
 
-          <button onClick={onBack} className="text-emerald-400 text-xs font-black uppercase tracking-[0.2em] mt-10 hover:text-white transition-colors">
-            ← Cancelar e Voltar
+          <button onClick={onBack} className="mt-12 text-white/40 hover:text-white text-xs font-bold transition-colors">
+            ← Voltar ao Dashboard
           </button>
         </div>
 
-        <div className="flex-1 p-12 bg-white flex flex-col items-center justify-center text-center">
+        {/* Right Side: Action Area */}
+        <div className="flex-1 p-12 bg-white flex flex-col items-center justify-center text-center relative overflow-hidden">
           {step === 1 && (
-            <div className="space-y-8 animate-in fade-in zoom-in duration-500">
-              <div className="w-48 h-48 bg-slate-50 rounded-[48px] p-8 flex items-center justify-center border-2 border-slate-100 border-dashed mx-auto">
-                <i className="fas fa-qrcode text-7xl text-slate-200"></i>
+            <div className="space-y-8 animate-in fade-in zoom-in duration-500 max-w-xs">
+              <div className="w-48 h-48 bg-slate-50 rounded-[48px] flex items-center justify-center border-2 border-slate-100 border-dashed mx-auto relative group cursor-pointer" onClick={runConnectionSequence}>
+                <i className="fas fa-network-wired text-6xl text-slate-200 group-hover:text-emerald-500 group-hover:scale-110 transition-all"></i>
               </div>
-              <h3 className="text-slate-900 font-black text-2xl">Ativação de Instância</h3>
-              <button onClick={handleGenerateQR} className="w-full bg-slate-900 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-slate-200">Gerar Token de Conexão</button>
+              <h3 className="text-slate-900 font-black text-2xl tracking-tight leading-tight">Vincular Número</h3>
+              <p className="text-slate-500 text-sm font-medium leading-relaxed">Inicie o servidor de conexão para sincronizar sua conta de atendimento.</p>
+              <button 
+                onClick={runConnectionSequence} 
+                className="w-full bg-slate-900 text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-slate-200 hover:bg-emerald-600 transition-all active:scale-95"
+              >
+                Gerar Gateway
+              </button>
             </div>
           )}
 
           {step === 2 && (
             <div className="space-y-8 animate-in fade-in duration-500 w-full flex flex-col items-center">
-              <div className="relative">
-                <div className={`w-64 h-64 bg-white shadow-2xl rounded-[48px] p-8 border border-slate-100 flex items-center justify-center transition-all ${loading ? 'opacity-30 blur-sm' : 'opacity-100'}`}>
+              <div className="relative group">
+                <div className={`w-64 h-64 bg-white shadow-2xl rounded-[48px] p-8 border border-slate-100 flex items-center justify-center transition-all overflow-hidden ${loading ? 'opacity-30 blur-sm' : 'opacity-100'}`}>
                    <img 
-                      src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=ZapSellerAI-Production-Auth" 
-                      alt="QR Code" 
-                      className="w-full h-full object-contain"
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=ZapSellerAI-Sandbox-${qrKey}`} 
+                      alt="QR Code Simulado" 
+                      className="w-full h-full object-contain pointer-events-none opacity-20 grayscale"
                   />
-                  {!loading && (
-                    <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-[scan_3s_linear_infinite]"></div>
-                  )}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-white/40 backdrop-blur-[2px]">
+                    <div className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl">
+                      Ambiente de Demo
+                    </div>
+                    <p className="text-slate-500 text-[9px] mt-2 font-bold max-w-[120px]">Utilize a ativação manual abaixo</p>
+                  </div>
                 </div>
+                {loading && (
+                   <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                   </div>
+                )}
               </div>
               
-              {showConfirmButton ? (
-                <div className="w-full animate-in slide-in-from-bottom-4 duration-500">
-                   <p className="text-emerald-600 text-[10px] font-black uppercase mb-4 tracking-[0.2em]">Autenticação Detectada!</p>
-                   <button onClick={handleSimulateScan} className="w-full bg-emerald-600 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 flex items-center justify-center gap-3">
-                     {loading ? 'Sincronizando...' : 'Concluir Conexão'}
-                     <i className="fas fa-check"></i>
-                   </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                   <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                   <p className="text-slate-400 text-xs font-bold">Aguardando escaneamento do terminal...</p>
-                </div>
-              )}
+              <div className="w-full max-w-xs space-y-4">
+                 <button 
+                  onClick={simulateScan} 
+                  disabled={loading}
+                  className="w-full bg-emerald-600 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all disabled:opacity-50"
+                 >
+                   {loading ? 'Sincronizando...' : 'Ativar Instância Manual'}
+                   <i className="fas fa-bolt"></i>
+                 </button>
+                 <p className="text-slate-400 text-[9px] font-bold">A ativação manual simula o escaneamento do código com sucesso para fins de teste da IA.</p>
+              </div>
             </div>
           )}
 
           {step === 3 && (
-            <div className="space-y-8 animate-in zoom-in duration-700 flex flex-col items-center">
-               <div className="w-32 h-32 bg-emerald-50 text-emerald-600 rounded-[48px] flex items-center justify-center shadow-xl">
+            <div className="space-y-8 animate-in zoom-in duration-700 flex flex-col items-center max-w-xs">
+               <div className="w-32 h-32 bg-emerald-50 text-emerald-600 rounded-[48px] flex items-center justify-center shadow-2xl relative">
                   <i className="fas fa-check text-5xl"></i>
+                  <div className="absolute -inset-4 border-2 border-emerald-500/20 rounded-[60px] animate-ping opacity-20"></div>
                </div>
-               <h2 className="text-3xl font-black text-slate-900 leading-tight">Sistema Conectado</h2>
-               <p className="text-slate-500 text-sm font-bold">Sua IA agora está monitorando e respondendo leads em tempo real.</p>
-               <button onClick={onSuccess} className="w-full bg-emerald-600 text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-emerald-100">Acessar Painel</button>
+               <div>
+                  <h2 className="text-3xl font-black text-slate-900 leading-tight mb-2 tracking-tight">Vendedor Pronto</h2>
+                  <p className="text-slate-500 text-sm font-bold">Instância conectada em modo sandbox. Vá para o simulador para testar as respostas da IA.</p>
+               </div>
+               <button onClick={onSuccess} className="w-full bg-slate-900 text-white py-6 rounded-[28px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-slate-200 hover:bg-black transition-all">Acessar Meu Painel</button>
             </div>
           )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes scan {
-          0%, 100% { top: 0%; opacity: 0.2; }
-          50% { top: 100%; opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 };

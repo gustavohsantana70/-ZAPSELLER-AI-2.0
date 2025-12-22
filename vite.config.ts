@@ -13,7 +13,7 @@ export default defineConfig({
     include: ['react', 'react-dom', '@google/genai'],
   },
   define: {
-    // Garante que o process.env.API_KEY esteja disponível no navegador
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
+    // Definimos apenas a chave específica de forma isolada para evitar vazamento do process.env completo
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || "")
   }
 });

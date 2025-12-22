@@ -64,9 +64,7 @@ const App: React.FC = () => {
   const [activeProductId, setActiveProductId] = useState<string>('1');
   const activeProduct = products.find(p => p.id === activeProductId) || products[0];
 
-  // Iniciando com lista de contas vazia para o usuário conectar a dele
   const [accounts, setAccounts] = useState<WhatsAppAccount[]>([]);
-  
   const [customPrompt, setCustomPrompt] = useState<string>(DEFAULT_PROMPT);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -122,10 +120,10 @@ const App: React.FC = () => {
     if (accounts.length < currentPlan.maxAccounts) {
       const newAcc: WhatsAppAccount = {
         id: Math.random().toString(36).substr(2, 9),
-        name: `WhatsApp Ativo`,
-        number: `Conectado`,
+        name: `Atendimento WhatsApp ${accounts.length + 1}`,
+        number: `+55 (11) 9${Math.floor(10000000 + Math.random() * 90000000)}`,
         status: 'connected',
-        lastActivity: 'Agora mesmo'
+        lastActivity: 'Ativo'
       };
       setAccounts([...accounts, newAcc]);
     }
