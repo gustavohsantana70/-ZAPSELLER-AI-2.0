@@ -1,9 +1,9 @@
 
 import { defineConfig } from 'vite';
 
-// Extraímos apenas o valor necessário antes de definir a config.
-// Isso evita que o esbuild acesse o objeto process.env como um todo durante o mapeamento.
-const API_KEY = process.env.API_KEY || "";
+// Capturamos apenas o valor da string. 
+// Ao fazer isso fora do 'define', evitamos que o Vite tente mapear o objeto process.env inteiro.
+const envKey = String(process.env.API_KEY || "");
 
 export default defineConfig({
   server: {
@@ -17,8 +17,8 @@ export default defineConfig({
     include: ['react', 'react-dom', '@google/genai'],
   },
   define: {
-    // Substituição literal e isolada. 
-    // Não usamos 'process.env': { ... } para evitar o aviso de segurança do PATH.
-    'process.env.API_KEY': JSON.stringify(API_KEY)
+    // Substituição cirúrgica: o código verá apenas o valor da string, 
+    // sem nunca acessar o objeto process.env do seu computador em tempo de execução.
+    'process.env.API_KEY': JSON.stringify(envKey)
   }
 });
