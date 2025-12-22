@@ -40,7 +40,7 @@ export const PLANS_CONFIG: Record<PlanType, any> = {
   },
 };
 
-const DEFAULT_PROMPT = "Você é um vendedor que ama ajudar pessoas. Use muita empatia. Primeiro valide a dor do cliente, mostre que você entende o que ele está passando. Só depois apresente o produto como a solução ideal. Reforce sempre o Pagamento na Entrega para tirar o peso da decisão.";
+const DEFAULT_PROMPT = "Você é um vendedor especialista em fechamento. Seja direto, use gatilhos de escassez e foque totalmente no benefício do Pagamento na Entrega (CoD) para passar segurança ao cliente. Peça o endereço assim que ele demonstrar interesse.";
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<AppStatus>(AppStatus.LANDING);
@@ -54,19 +54,18 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([
     {
       id: '1',
-      name: 'Kit Emagrecedor Natural X',
-      price: '197,90',
-      benefits: 'Queima gordura localizada, inibe o apetite e dá mais energia.',
-      paymentMethod: 'Pagamento somente na entrega (CoD)'
+      name: 'Produto Exemplo (Edite aqui)',
+      price: '0,00',
+      benefits: 'Descreva aqui os benefícios do seu produto para a IA usar na venda.',
+      paymentMethod: 'Pagamento na Entrega (CoD)'
     }
   ]);
   
   const [activeProductId, setActiveProductId] = useState<string>('1');
   const activeProduct = products.find(p => p.id === activeProductId) || products[0];
 
-  const [accounts, setAccounts] = useState<WhatsAppAccount[]>([
-    { id: '1', name: 'Suporte Principal', number: '+55 (11) 98765-4321', status: 'connected', lastActivity: 'Há 2 min' }
-  ]);
+  // Iniciando com lista de contas vazia para o usuário conectar a dele
+  const [accounts, setAccounts] = useState<WhatsAppAccount[]>([]);
   
   const [customPrompt, setCustomPrompt] = useState<string>(DEFAULT_PROMPT);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -93,18 +92,6 @@ const App: React.FC = () => {
   };
 
   const handleUpgrade = async (plan: PlanType) => {
-    try {
-      const win = window as any;
-      if (plan === 'pro' && win.aistudio) {
-        const hasKey = await win.aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          await win.aistudio.openSelectKey();
-        }
-      }
-    } catch (e) {
-      console.log("Ambiente fora do AI Studio, utilizando API_KEY de produção.");
-    }
-    
     const updatedUser = { ...user, plan };
     setUser(updatedUser);
     localStorage.setItem('zapseller_user', JSON.stringify(updatedUser));
@@ -116,15 +103,18 @@ const App: React.FC = () => {
   };
 
   const addProduct = () => {
-    const newProd: Product = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: 'Novo Produto',
-      price: '0,00',
-      benefits: '',
-      paymentMethod: 'Pagamento somente na entrega (CoD)'
-    };
-    setProducts([...products, newProd]);
-    setActiveProductId(newProd.id);
+    const currentPlan = PLANS_CONFIG[user.plan];
+    if (products.length < currentPlan.maxProducts) {
+      const newProd: Product = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: 'Novo Produto',
+        price: '0,00',
+        benefits: '',
+        paymentMethod: 'Pagamento na Entrega (CoD)'
+      };
+      setProducts([...products, newProd]);
+      setActiveProductId(newProd.id);
+    }
   };
 
   const addAccount = () => {
@@ -132,8 +122,8 @@ const App: React.FC = () => {
     if (accounts.length < currentPlan.maxAccounts) {
       const newAcc: WhatsAppAccount = {
         id: Math.random().toString(36).substr(2, 9),
-        name: `Conta ${accounts.length + 1}`,
-        number: `+55 (11) 9${Math.floor(10000000 + Math.random() * 90000000)}`,
+        name: `WhatsApp Ativo`,
+        number: `Conectado`,
         status: 'connected',
         lastActivity: 'Agora mesmo'
       };
@@ -198,7 +188,7 @@ const App: React.FC = () => {
           setIsOpen={setIsSidebarOpen}
         />
       )}
-      <main className={`flex-1 transition-all duration-300 ${showSidebar && isSidebarOpen ? 'md:ml-0' : ''}`}>
+      <main className={`flex-1 transition-all duration-300`}>
         {renderContent()}
       </main>
     </div>
