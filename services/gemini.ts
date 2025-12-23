@@ -32,10 +32,11 @@ export const getGeminiResponse = async (
   isVipSupport: boolean = false
 ): Promise<AIResponse> => {
   
-  // Inicialização obrigatória conforme diretrizes do SDK
+  // Inicialização obrigatória utilizando process.env.API_KEY conforme diretrizes
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
   
   // Seleção de modelo baseada na tarefa e plano
+  // Gemini 3 Pro é utilizado para tarefas complexas de vendas no plano Pro
   let modelName = 'gemini-3-flash-preview'; 
   if (plan === 'pro') modelName = 'gemini-3-pro-preview';
   if (audioData) modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
@@ -49,20 +50,21 @@ export const getGeminiResponse = async (
       strategyInstructions = `Qualifique o lead e use confirmOrder quando ele quiser um orçamento.`;
       break;
     default:
-      strategyInstructions = `PAGAMENTO NA ENTREGA (CoD). Cliente paga ao receber. Peça endereço via confirmOrder.`;
+      strategyInstructions = `PAGAMENTO NA ENTREGA (CoD). Cliente paga ao receber. Peça endereço via confirmOrder assim que ele demonstrar interesse.`;
   }
 
   const systemInstruction = isVipSupport 
-    ? `Você é o Gerente VIP do ZapSeller AI. Ajude o usuário a configurar sua operação.`
+    ? `Você é o Gerente VIP do ZapSeller AI. Ajude o usuário a configurar sua operação de vendas no WhatsApp.`
     : `Aja como um vendedor experiente de WhatsApp para o produto: ${product.name}.
        PREÇO: R$ ${product.price}
        BENEFÍCIOS: ${product.benefits}
        ESTRATÉGIA: ${strategyInstructions}
        REGRAS:
        1. Seja persuasivo e use emojis.
-       2. Use frases curtas.
-       3. Nunca diga que é uma IA.
-       4. ${customPrompt || ""}`;
+       2. Use frases curtas e diretas.
+       3. Nunca mencione que você é uma inteligência artificial.
+       4. Use gatilhos de escassez e urgência.
+       5. ${customPrompt || ""}`;
 
   // Formatação das mensagens para o SDK
   const contents: any[] = history.map(msg => ({
@@ -70,7 +72,7 @@ export const getGeminiResponse = async (
     parts: [{ text: msg.text || "Olá" }]
   }));
 
-  // Inclusão de áudio se disponível
+  // Inclusão de áudio se disponível (Suporte nativo no modelo 2.5 flash native audio)
   if (audioData && contents.length > 0) {
     const lastPart = contents[contents.length - 1];
     if (lastPart.role === 'user') {
@@ -90,11 +92,13 @@ export const getGeminiResponse = async (
       config: {
         systemInstruction,
         temperature: 0.8,
-        tools: [{ functionDeclarations: [confirmOrderTool] }]
+        tools: [{ functionDeclarations: [confirmOrderTool] }],
+        // Habilita raciocínio avançado se for modelo compatível
+        ...(plan === 'pro' && modelName.includes('pro') ? { thinkingConfig: { thinkingBudget: 4000 } } : {})
       }
     });
 
-    // Extração direta da propriedade .text (não chamar como método)
+    // Extração direta da propriedade .text conforme diretrizes
     let textOutput = response.text || "";
     let audioOutput = "";
     let orderDetails = null;
@@ -106,7 +110,7 @@ export const getGeminiResponse = async (
         }
         if (part.functionCall) {
           orderDetails = { ...part.functionCall.args, strategy: product.salesStrategy };
-          textOutput = "Pedido registrado com sucesso! Estou processando as informações.";
+          textOutput = "Perfeito! Já registrei suas informações aqui no sistema. Posso te ajudar com algo mais?";
         }
       }
     }
@@ -118,6 +122,6 @@ export const getGeminiResponse = async (
     };
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return { text: "⚠️ IA Temporariamente Indisponível. Verifique se sua API_KEY está correta e ativa." };
+    return { text: "⚠️ Ocorreu um erro na comunicação com a IA. Verifique sua conexão ou tente novamente em instantes." };
   }
 };
