@@ -16,7 +16,7 @@ export const PLANS_CONFIG: Record<PlanType, any> = {
     name: 'Free', 
     maxProducts: 1, 
     maxAccounts: 1, 
-    maxMessages: 10, // Sincronizado com backend
+    maxMessages: 50, 
     hasAI: false,
     hasAudioAI: false 
   },
@@ -24,7 +24,7 @@ export const PLANS_CONFIG: Record<PlanType, any> = {
     name: 'Starter', 
     maxProducts: 2, 
     maxAccounts: 1, 
-    maxMessages: 100, // Sincronizado com backend
+    maxMessages: 1000, 
     hasAI: true, 
     hasAudioAI: false 
   },
@@ -32,7 +32,7 @@ export const PLANS_CONFIG: Record<PlanType, any> = {
     name: 'Pro', 
     maxProducts: 10, 
     maxAccounts: 10, 
-    maxMessages: 9999, // Sincronizado com backend
+    maxMessages: Infinity, 
     hasAI: true, 
     hasAudioAI: true,
     hasAutoQualification: true,
@@ -54,10 +54,11 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([
     {
       id: '1',
-      name: 'Produto Exemplo',
-      price: '197,00',
-      benefits: 'Alta qualidade, entrega rápida e garantia total.',
+      name: 'Produto Exemplo (Edite aqui)',
+      price: '0,00',
+      benefits: 'Descreva aqui os benefícios do seu produto para a IA usar na venda.',
       paymentMethod: 'Pagamento na Entrega (CoD)',
+      // Fix: Added missing required salesStrategy property
       salesStrategy: 'physical_cod'
     }
   ]);
@@ -90,7 +91,7 @@ const App: React.FC = () => {
     setStatus(AppStatus.LANDING);
   };
 
-  const handleUpgrade = (plan: PlanType) => {
+  const handleUpgrade = async (plan: PlanType) => {
     const updatedUser = { ...user, plan };
     setUser(updatedUser);
     localStorage.setItem('zapseller_user', JSON.stringify(updatedUser));
@@ -99,6 +100,37 @@ const App: React.FC = () => {
 
   const updateProduct = (updatedProduct: Product) => {
     setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+  };
+
+  const addProduct = () => {
+    const currentPlan = PLANS_CONFIG[user.plan];
+    if (products.length < currentPlan.maxProducts) {
+      const newProd: Product = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: 'Novo Produto',
+        price: '0,00',
+        benefits: '',
+        paymentMethod: 'Pagamento na Entrega (CoD)',
+        // Fix: Added missing required salesStrategy property
+        salesStrategy: 'physical_cod'
+      };
+      setProducts([...products, newProd]);
+      setActiveProductId(newProd.id);
+    }
+  };
+
+  const addAccount = (details?: { number: string; name: string }) => {
+    const currentPlan = PLANS_CONFIG[user.plan];
+    if (accounts.length < currentPlan.maxAccounts) {
+      const newAcc: WhatsAppAccount = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: details?.name || `Atendimento WhatsApp ${accounts.length + 1}`,
+        number: details?.number || `+55 (11) 9${Math.floor(10000000 + Math.random() * 90000000)}`,
+        status: 'connected',
+        lastActivity: 'Conectado Agora'
+      };
+      setAccounts([...accounts, newAcc]);
+    }
   };
 
   const renderContent = () => {
@@ -117,7 +149,7 @@ const App: React.FC = () => {
             activeProductId={activeProductId}
             setActiveProductId={setActiveProductId}
             onUpdateProduct={updateProduct}
-            onAddProduct={() => {}} 
+            onAddProduct={addProduct}
             customPrompt={customPrompt} 
             setCustomPrompt={setCustomPrompt} 
             onSave={() => setStatus(AppStatus.DASHBOARD)} 
@@ -131,13 +163,12 @@ const App: React.FC = () => {
             customPrompt={customPrompt} 
             onBack={() => setStatus(AppStatus.DASHBOARD)} 
             onMessageSent={() => setUser(prev => ({ ...prev, messagesSent: prev.messagesSent + 1 }))}
-            onUpgrade={() => setStatus(AppStatus.PRICING)}
           />
         );
       case AppStatus.REPORTS:
         return <ReportsPage user={user} onBack={() => setStatus(AppStatus.DASHBOARD)} />;
       case AppStatus.WHATSAPP_CONNECT:
-        return <WhatsAppConnect onSuccess={() => setStatus(AppStatus.DASHBOARD)} onBack={() => setStatus(AppStatus.DASHBOARD)} />;
+        return <WhatsAppConnect onSuccess={(data) => { addAccount(data); setStatus(AppStatus.DASHBOARD); }} onBack={() => setStatus(AppStatus.DASHBOARD)} />;
       case AppStatus.PRICING:
         return <PricingPage currentPlan={user.plan} onSelectPlan={handleUpgrade} onBack={() => setStatus(AppStatus.DASHBOARD)} />;
       default:
