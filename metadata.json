@@ -2,8 +2,6 @@
   "name": "ZapSeller AI",
   "description": "Automação de atendimento e fechamento de vendas no WhatsApp com IA para produtos físicos e pagamento na entrega (CoD).",
   "requestFramePermissions": [
-    "camera",
-    "microphone",
-    "geolocation"
+    "microphone"
   ]
 }
