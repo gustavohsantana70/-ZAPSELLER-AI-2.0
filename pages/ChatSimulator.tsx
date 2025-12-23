@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Product, Message, User, SalesStrategy } from '../types';
 import { getGeminiResponse, AIResponse } from '../services/gemini';
@@ -14,7 +15,6 @@ function decodeBase64(base64: string) {
   return bytes;
 }
 
-// Implementação manual de decodificação conforme documentação do SDK
 async function decodeAudioData(
   data: Uint8Array,
   ctx: AudioContext,
@@ -40,9 +40,10 @@ interface ChatSimulatorProps {
   customPrompt: string;
   onBack: () => void;
   onMessageSent: () => void;
+  onUpgrade?: () => void;
 }
 
-const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customPrompt, onBack, onMessageSent }) => {
+const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customPrompt, onBack, onMessageSent, onUpgrade }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', text: `Olá! 👋 Vi que você tem interesse no ${product.name}. Como posso te ajudar hoje?`, timestamp: new Date() }
   ]);
@@ -86,7 +87,6 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
       }
       const ctx = audioContextRef.current;
       const audioData = decodeBase64(base64Audio);
-      // Decodificando áudio PCM 24kHz Mono conforme retorno da API
       const audioBuffer = await decodeAudioData(audioData, ctx, 24000, 1);
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
@@ -97,7 +97,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
 
   const handleSend = async (e: React.FormEvent | null, audioIn?: any, audioUrl?: string) => {
     if (e) e.preventDefault();
-    if (isAtLimit) return alert("Limite de mensagens atingido.");
+    if (isAtLimit) return alert("Limite de mensagens do seu plano atingido. Faça upgrade para continuar.");
     
     const textToSend = input.trim();
     if (!textToSend && !audioIn) return;
@@ -114,14 +114,28 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
     setInput('');
     setIsTyping(true);
     if (user.plan === 'pro') setIsThinking(true);
-    onMessageSent();
 
     try {
-      const res: AIResponse = await getGeminiResponse(updatedHistory, product, customPrompt, audioIn, user.plan);
+      const res: AIResponse = await getGeminiResponse(
+        updatedHistory, 
+        product, 
+        customPrompt, 
+        audioIn, 
+        user.plan, 
+        false, 
+        user.messagesSent
+      );
       
       setIsTyping(false);
       setIsThinking(false);
       
+      if (res.text.includes("⚠️ Limite")) {
+        // Se o erro veio do backend, não incrementamos localmente para evitar desvio
+        return;
+      }
+
+      onMessageSent(); // Incrementa localmente o contador
+
       if (res.orderConfirmed) {
         setConfirmedOrder(res.orderConfirmed);
         setLeadStatus('quente');
@@ -142,7 +156,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
       setIsThinking(false);
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: `Erro: ${error.message || "Problema na conexão. Verifique sua chave de API."}`, 
+        text: `${error.message || "⚠️ Problema na conexão."}`, 
         timestamp: new Date() 
       }]);
     }
@@ -201,12 +215,26 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
         </div>
         
         <div className="flex items-center gap-2">
+          {user.plan === 'free' && (
+             <div className="px-3 py-1 bg-amber-500 rounded-full border border-amber-400 shadow-sm animate-pulse">
+                <span className="text-[8px] font-black uppercase text-white tracking-widest">Plano Free</span>
+             </div>
+          )}
           <div className={`px-3 py-1 rounded-full border border-white/20 flex items-center gap-2 ${leadStatus === 'quente' ? 'bg-red-500 animate-pulse' : 'bg-black/20'}`}>
              <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
              <span className="text-[8px] font-black uppercase tracking-widest">Lead {leadStatus}</span>
           </div>
         </div>
       </header>
+
+      {/* Plan Info Bar */}
+      {user.plan === 'free' && (
+        <div className="bg-amber-50 border-b border-amber-200 p-2 text-center">
+          <p className="text-[10px] font-bold text-amber-800">
+            Você está no plano <span className="underline">Free</span> ({user.messagesSent}/{currentPlan.maxMessages}). Upgrade para liberar IA persuasiva!
+          </p>
+        </div>
+      )}
 
       {/* Chat Area */}
       <div 
@@ -217,15 +245,6 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-[12px] p-2.5 shadow-sm relative ${msg.role === 'user' ? 'bg-[#dcf8c6] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
-              {msg.audioUrl && msg.audioUrl !== 'ai-voice' && (
-                <div className="mb-1 p-2 bg-black/5 rounded-xl flex items-center gap-3 border border-black/5 min-w-[200px]">
-                  <i className="fas fa-play text-[#075e54]"></i>
-                  <div className="flex-1 h-1 bg-black/10 rounded-full overflow-hidden">
-                    <div className="w-1/3 h-full bg-[#075e54]"></div>
-                  </div>
-                  <i className="fab fa-whatsapp text-emerald-600"></i>
-                </div>
-              )}
               <p className="text-[14px] leading-snug text-slate-800 font-medium whitespace-pre-wrap">{msg.text}</p>
               <div className="flex justify-end mt-1">
                 <span className="text-[9px] text-slate-400 font-bold">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -238,7 +257,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
           <div className="flex justify-start animate-in fade-in slide-in-from-left-4">
             <div className="bg-slate-900 text-amber-400 rounded-2xl px-5 py-3 shadow-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 border-l-4 border-amber-500">
               <i className="fas fa-bolt animate-pulse"></i>
-              IA ESTRATÉGICA: Analisando melhor oferta...
+              IA ESTRATÉGICA PRO: Pensando no fechamento...
             </div>
           </div>
         )}
@@ -251,7 +270,6 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
           </div>
         )}
 
-        {/* Modal Dinâmico de Venda */}
         {confirmedOrder && modalConfig && (
           <div className="flex justify-center my-6 animate-in zoom-in duration-500">
             <div className="bg-white border-2 border-slate-100 rounded-[32px] p-6 shadow-2xl max-w-[280px] text-center">
@@ -263,7 +281,6 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
               
               <div className="text-left space-y-2 mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Cliente: <span className="text-slate-900">{confirmedOrder.customerName}</span></p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Detalhes: <span className="text-slate-900 truncate block">{confirmedOrder.details}</span></p>
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Total: <span className="text-emerald-600 font-black">R$ {product.price}</span></p>
               </div>
 
@@ -272,6 +289,19 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
           </div>
         )}
       </div>
+
+      {/* Conversion Banner for Free Plan */}
+      {user.plan === 'free' && (
+        <div className="px-4 py-3 bg-white border-t border-slate-200">
+          <button 
+            onClick={onUpgrade}
+            className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+          >
+            <i className="fas fa-crown text-amber-400"></i>
+            Ativar ZapSeller Pro Agora
+          </button>
+        </div>
+      )}
 
       {/* Input Area */}
       <div className="p-2 bg-[#f0f2f5] border-t border-slate-200">
@@ -289,8 +319,8 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
                 <input 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Escreva sua mensagem..."
-                  disabled={isTyping || isThinking}
+                  placeholder={isAtLimit ? "Limite do plano atingido." : "Escreva sua mensagem..."}
+                  disabled={isTyping || isThinking || isAtLimit}
                   className="flex-1 bg-transparent py-3 outline-none text-[15px] font-medium"
                 />
               </>
@@ -301,7 +331,8 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
             onMouseDown={startRecording}
             onMouseUp={() => mediaRecorderRef.current?.stop()}
             onClick={input.trim() && !isRecording ? () => handleSend(null) : undefined}
-            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all ${isRecording ? 'bg-red-500 scale-110' : 'bg-[#075e54]'} text-white`}
+            disabled={isAtLimit && !input.trim()}
+            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all ${isRecording ? 'bg-red-500 scale-110' : 'bg-[#075e54]'} text-white disabled:opacity-50`}
           >
             <i className={input.trim() && !isRecording ? "fas fa-paper-plane" : (isRecording ? "fas fa-stop" : "fas fa-microphone")}></i>
           </button>

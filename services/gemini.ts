@@ -1,4 +1,3 @@
-
 import { Product, Message, PlanType } from "../types";
 
 export interface AIResponse {
@@ -9,8 +8,8 @@ export interface AIResponse {
 }
 
 /**
- * Cliente de API para o ZapSeller AI.
- * Agora toda a lógica pesada e a chave de API ficam protegidas no backend.
+ * Cliente de API do ZapSeller AI.
+ * Toda a inteligência e validação de chaves ocorre no backend (api/chat.ts).
  */
 export const getGeminiResponse = async (
   history: Message[],
@@ -18,7 +17,8 @@ export const getGeminiResponse = async (
   customPrompt?: string,
   audioData?: { data: string; mimeType: string },
   plan: PlanType = 'free',
-  isVipSupport: boolean = false
+  isVipSupport: boolean = false,
+  messagesSent: number = 0
 ): Promise<AIResponse> => {
   try {
     const response = await fetch('/api/chat', {
@@ -32,20 +32,24 @@ export const getGeminiResponse = async (
         customPrompt,
         audioData,
         plan,
-        isVipSupport
+        isVipSupport,
+        messagesSent 
       }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro na comunicação com o servidor');
+      throw new Error(data.error || 'Falha na conexão com o servidor');
     }
 
-    return await response.json();
+    return data;
   } catch (error: any) {
-    console.error("API Fetch Error:", error);
+    console.error("Fetch Error:", error);
     return { 
-      text: "⚠️ Ocorreu um erro ao falar com o vendedor virtual. Por favor, tente novamente em alguns instantes." 
+      text: error.message.includes("Limite") || error.message.includes("Plano")
+        ? `⚠️ ${error.message}` 
+        : "⚠️ Desculpe, tive um problema de conexão. Poderia tentar de novo?" 
     };
   }
 };

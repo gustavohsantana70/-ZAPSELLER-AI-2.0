@@ -16,7 +16,7 @@ export const PLANS_CONFIG: Record<PlanType, any> = {
     name: 'Free', 
     maxProducts: 1, 
     maxAccounts: 1, 
-    maxMessages: 50, 
+    maxMessages: 10, // Sincronizado conforme requisito (10)
     hasAI: false,
     hasAudioAI: false 
   },
@@ -24,7 +24,7 @@ export const PLANS_CONFIG: Record<PlanType, any> = {
     name: 'Starter', 
     maxProducts: 2, 
     maxAccounts: 1, 
-    maxMessages: 1000, 
+    maxMessages: 100, // Sincronizado conforme requisito (100)
     hasAI: true, 
     hasAudioAI: false 
   },
@@ -32,7 +32,7 @@ export const PLANS_CONFIG: Record<PlanType, any> = {
     name: 'Pro', 
     maxProducts: 10, 
     maxAccounts: 10, 
-    maxMessages: Infinity, 
+    maxMessages: 9999, // Sincronizado conforme requisito (9999)
     hasAI: true, 
     hasAudioAI: true,
     hasAutoQualification: true,
@@ -58,7 +58,6 @@ const App: React.FC = () => {
       price: '0,00',
       benefits: 'Descreva aqui os benefícios do seu produto para a IA usar na venda.',
       paymentMethod: 'Pagamento na Entrega (CoD)',
-      // Fix: Added missing required salesStrategy property
       salesStrategy: 'physical_cod'
     }
   ]);
@@ -111,7 +110,6 @@ const App: React.FC = () => {
         price: '0,00',
         benefits: '',
         paymentMethod: 'Pagamento na Entrega (CoD)',
-        // Fix: Added missing required salesStrategy property
         salesStrategy: 'physical_cod'
       };
       setProducts([...products, newProd]);
@@ -162,7 +160,12 @@ const App: React.FC = () => {
             product={activeProduct} 
             customPrompt={customPrompt} 
             onBack={() => setStatus(AppStatus.DASHBOARD)} 
-            onMessageSent={() => setUser(prev => ({ ...prev, messagesSent: prev.messagesSent + 1 }))}
+            onMessageSent={() => setUser(prev => {
+              const updated = { ...prev, messagesSent: prev.messagesSent + 1 };
+              localStorage.setItem('zapseller_user', JSON.stringify(updated));
+              return updated;
+            })}
+            onUpgrade={() => setStatus(AppStatus.PRICING)}
           />
         );
       case AppStatus.REPORTS:
