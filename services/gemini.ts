@@ -9,7 +9,7 @@ export interface AIResponse {
 
 /**
  * Cliente de API do ZapSeller AI.
- * Toda a inteligência e validação de chaves ocorre no backend (api/chat.ts).
+ * Realiza chamadas seguras para o nosso backend, nunca diretamente para a IA.
  */
 export const getGeminiResponse = async (
   history: Message[],
@@ -40,16 +40,15 @@ export const getGeminiResponse = async (
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Falha na conexão com o servidor');
+      throw new Error(data.error || 'Erro de comunicação.');
     }
 
     return data;
   } catch (error: any) {
-    console.error("Fetch Error:", error);
     return { 
-      text: error.message.includes("Limite") || error.message.includes("Plano")
+      text: error.message.includes("Limite") 
         ? `⚠️ ${error.message}` 
-        : "⚠️ Desculpe, tive um problema de conexão. Poderia tentar de novo?" 
+        : "⚠️ Conexão instável. Tente novamente em instantes." 
     };
   }
 };
