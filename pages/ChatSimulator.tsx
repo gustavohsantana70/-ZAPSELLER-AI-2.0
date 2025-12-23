@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Product, Message, User, SalesStrategy } from '../types';
 import { getGeminiResponse, AIResponse } from '../services/gemini';
@@ -55,7 +54,6 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const currentPlanConfig = PLANS_CONFIG[user.plan];
@@ -72,7 +70,7 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
     const textToSend = input.trim();
     if (!textToSend && !audioIn) return;
 
-    const userMessage: Message = { role: 'user', text: audioIn ? "🎤 Áudio" : textToSend, timestamp: new Date() };
+    const userMessage: Message = { role: 'user', text: audioIn ? "🎤 Áudio Enviado" : textToSend, timestamp: new Date() };
     const updatedHistory = [...messages, userMessage];
     setMessages(updatedHistory);
     setInput('');
@@ -80,7 +78,16 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
     if (user.plan === 'pro') setIsThinking(true);
 
     try {
-      const res: AIResponse = await getGeminiResponse(updatedHistory, product, customPrompt, audioIn, user.plan, false, user.messagesSent);
+      const res: AIResponse = await getGeminiResponse(
+        updatedHistory, 
+        product, 
+        customPrompt, 
+        audioIn, 
+        user.plan, 
+        false, 
+        user.messagesSent
+      );
+      
       setIsTyping(false);
       setIsThinking(false);
       
@@ -104,9 +111,10 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
         source.connect(ctx.destination);
         source.start();
       }
-    } catch (error) {
+    } catch (error: any) {
       setIsTyping(false);
       setIsThinking(false);
+      setMessages(prev => [...prev, { role: 'model', text: `⚠️ ${error.message || "Erro de conexão"}`, timestamp: new Date() }]);
     }
   };
 
@@ -115,27 +123,29 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
       {/* WhatsApp Header */}
       <header className="bg-[#075e54] text-white p-4 py-3 flex items-center justify-between shadow-lg z-20 shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 hover:bg-black/10 rounded-full transition-colors"><i className="fas fa-arrow-left"></i></button>
+          <button onClick={onBack} className="p-2 hover:bg-black/10 rounded-full transition-colors">
+            <i className="fas fa-arrow-left"></i>
+          </button>
           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-black">ZS</div>
           <div>
-            <h2 className="font-bold text-sm leading-none">Vendedor ZapSeller</h2>
-            <p className="text-[9px] opacity-80 uppercase tracking-widest font-black mt-1">Status: Ativo</p>
+            <h2 className="font-bold text-sm leading-none">ZapSeller AI</h2>
+            <p className="text-[9px] opacity-80 uppercase tracking-widest font-black mt-1">Online agora</p>
           </div>
         </div>
         
         {user.plan === 'free' && (
-          <div className="px-3 py-1 bg-amber-500 rounded-full border border-amber-400 animate-pulse shadow-lg">
+          <div className="px-3 py-1 bg-amber-500 rounded-full border border-amber-400 shadow-md">
              <span className="text-[8px] font-black uppercase text-white">Plano Free</span>
           </div>
         )}
       </header>
 
-      {/* Plan Notice */}
+      {/* Plan Notice Banner */}
       {user.plan === 'free' && (
-        <div className="bg-amber-50 border-b border-amber-100 p-2 text-center">
+        <div className="bg-amber-50 border-b border-amber-200 p-2 text-center animate-in slide-in-from-top duration-300">
           <p className="text-[10px] font-bold text-amber-800">
-            Você está no plano <span className="underline">Free</span> ({user.messagesSent}/{currentPlanConfig.maxMessages} mensagens). 
-            Upgrade para IA Persuasiva!
+            Você está no plano <span className="underline">Free</span> ({user.messagesSent}/{currentPlanConfig.maxMessages}). 
+            Ative a IA de fechamento agora!
           </p>
         </div>
       )}
@@ -161,20 +171,28 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
           <div className="flex justify-start">
             <div className="bg-slate-900 text-amber-400 rounded-2xl px-5 py-3 shadow-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 border-l-4 border-amber-500">
               <i className="fas fa-bolt animate-pulse"></i>
-              Pensando na melhor estratégia de fechamento...
+              IA PRO: Analisando as melhores táticas de fechamento...
+            </div>
+          </div>
+        )}
+
+        {isTyping && !isThinking && (
+          <div className="flex justify-start">
+            <div className="bg-white text-emerald-600 rounded-full px-4 py-2 shadow-sm text-[10px] font-black uppercase tracking-widest border border-slate-100 animate-pulse">
+              IA digitando...
             </div>
           </div>
         )}
       </div>
 
-      {/* Fixed Upgrade Button for Free Users */}
+      {/* Fixed Upgrade Button for Conversion */}
       {user.plan === 'free' && (
-        <div className="px-4 py-2 bg-white/80 backdrop-blur-sm border-t border-slate-200">
+        <div className="px-4 py-3 bg-white border-t border-slate-200">
           <button 
             onClick={onUpgrade}
-            className="w-full bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+            className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-3"
           >
-            <i className="fas fa-crown"></i>
+            <i className="fas fa-crown text-amber-300"></i>
             Ativar ZapSeller Pro Agora
           </button>
         </div>
@@ -187,15 +205,15 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
             <input 
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={isAtLimit ? "Limite atingido. Faça upgrade!" : "Escreva sua mensagem..."}
+              placeholder={isAtLimit ? "Mensagens esgotadas." : "Digite uma mensagem..."}
               disabled={isTyping || isThinking || isAtLimit}
-              className="flex-1 bg-transparent py-3 outline-none text-[15px] font-medium disabled:cursor-not-allowed"
+              className="flex-1 bg-transparent py-3 outline-none text-[15px] font-medium"
             />
           </div>
           <button 
             type="submit"
             disabled={!input.trim() || isAtLimit}
-            className="w-12 h-12 rounded-full bg-[#075e54] text-white flex items-center justify-center shadow-lg disabled:opacity-50"
+            className="w-12 h-12 rounded-full bg-[#075e54] text-white flex items-center justify-center shadow-lg disabled:opacity-50 transition-all"
           >
             <i className="fas fa-paper-plane"></i>
           </button>
