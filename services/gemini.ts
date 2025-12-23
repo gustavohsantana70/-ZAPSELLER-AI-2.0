@@ -1,6 +1,5 @@
-
-import { GoogleGenAI, GenerateContentResponse, Modality, Type, FunctionDeclaration } from "@google/genai";
-import { Product, Message, PlanType, SalesStrategy } from "../types";
+import { GoogleGenAI, GenerateContentResponse, Type, FunctionDeclaration } from "@google/genai";
+import { Product, Message, PlanType } from "../types";
 
 export interface AIResponse {
   text: string;
@@ -9,6 +8,7 @@ export interface AIResponse {
   orderConfirmed?: any;
 }
 
+// Definição da ferramenta de fechamento de pedido para a IA
 const confirmOrderTool: FunctionDeclaration = {
   name: 'confirmOrder',
   parameters: {
@@ -32,11 +32,10 @@ export const getGeminiResponse = async (
   isVipSupport: boolean = false
 ): Promise<AIResponse> => {
   
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return { text: "O vendedor está finalizando outro atendimento. Aguarde um instante." };
-
-  const ai = new GoogleGenAI({ apiKey });
-  // Priorizamos modelos de alta performance para o Micro-SaaS
+  // Inicialização obrigatória conforme diretrizes do SDK
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  
+  // Seleção de modelo baseada na tarefa e plano
   let modelName = 'gemini-3-flash-preview'; 
   if (plan === 'pro') modelName = 'gemini-3-pro-preview';
   if (audioData) modelName = 'gemini-2.5-flash-native-audio-preview-09-2025';
@@ -44,70 +43,81 @@ export const getGeminiResponse = async (
   let strategyInstructions = "";
   switch(product.salesStrategy) {
     case 'digital':
-      strategyInstructions = `VOCÊ VENDE UM PRODUTO DIGITAL. Foque na entrega imediata via e-mail. Link: ${product.checkoutUrl || 'Checkout Ativo'}.`;
+      strategyInstructions = `Venda o acesso imediato. Link: ${product.checkoutUrl || 'Indisponível'}.`;
       break;
     case 'service':
-      strategyInstructions = `VOCÊ VENDE UM SERVIÇO. Foque em autoridade e qualificação. Peça os dados para orçamento.`;
-      break;
-    case 'physical_prepaid':
-      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO COM PAGAMENTO ANTECIPADO. Destaque o envio imediato após Pix: ${product.pixKey || 'Chave Pix Ativa'}.`;
+      strategyInstructions = `Qualifique o lead e use confirmOrder quando ele quiser um orçamento.`;
       break;
     default:
-      strategyInstructions = `VOCÊ VENDE PRODUTO FÍSICO NO MODELO COD (PAGAMENTO NA ENTREGA). Este é seu maior trunfo: o cliente só paga quando receber em casa. Peça o endereço completo para fechar.`;
+      strategyInstructions = `PAGAMENTO NA ENTREGA (CoD). Cliente paga ao receber. Peça endereço via confirmOrder.`;
   }
 
   const systemInstruction = isVipSupport 
-    ? `Você é o estrategista sênior do ZapSeller. Sua missão é fazer o usuário lucrar.`
-    : `ATUE COMO UM VENDEDOR HUMANO REAL NO WHATSAPP.
-       PRODUTO: ${product.name} | VALOR: R$ ${product.price}.
-       ESTILO: Persuasivo, amigável, usa emojis, usa frases curtas. 
-       OBJETIVO: Levar ao fechamento rápido. 
-       ${strategyInstructions}
-       PERSONALIDADE ADICIONAL: ${customPrompt || "Foque na segurança do cliente."}`;
+    ? `Você é o Gerente VIP do ZapSeller AI. Ajude o usuário a configurar sua operação.`
+    : `Aja como um vendedor experiente de WhatsApp para o produto: ${product.name}.
+       PREÇO: R$ ${product.price}
+       BENEFÍCIOS: ${product.benefits}
+       ESTRATÉGIA: ${strategyInstructions}
+       REGRAS:
+       1. Seja persuasivo e use emojis.
+       2. Use frases curtas.
+       3. Nunca diga que é uma IA.
+       4. ${customPrompt || ""}`;
 
-  const contents = history.map(msg => ({
+  // Formatação das mensagens para o SDK
+  const contents: any[] = history.map(msg => ({
     role: msg.role === 'model' ? 'model' : 'user',
-    parts: [{ text: msg.text }] as any[]
+    parts: [{ text: msg.text || "Olá" }]
   }));
 
-  try {
-    const config: any = {
-      systemInstruction,
-      temperature: 0.85,
-      tools: [{ functionDeclarations: [confirmOrderTool] }]
-    };
-
-    if (plan === 'pro' && !audioData) {
-      config.thinkingConfig = { thinkingBudget: 8000 };
+  // Inclusão de áudio se disponível
+  if (audioData && contents.length > 0) {
+    const lastPart = contents[contents.length - 1];
+    if (lastPart.role === 'user') {
+      lastPart.parts.push({
+        inlineData: {
+          mimeType: audioData.mimeType,
+          data: audioData.data
+        }
+      });
     }
+  }
 
+  try {
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: modelName,
       contents,
-      config
+      config: {
+        systemInstruction,
+        temperature: 0.8,
+        tools: [{ functionDeclarations: [confirmOrderTool] }]
+      }
     });
 
-    let textOutput = "";
+    // Extração direta da propriedade .text (não chamar como método)
+    let textOutput = response.text || "";
     let audioOutput = "";
     let orderDetails = null;
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.text) textOutput += part.text;
-      if (part.inlineData?.data) audioOutput = part.inlineData.data;
-      if (part.functionCall) {
-        orderDetails = { ...part.functionCall.args, strategy: product.salesStrategy };
-        textOutput = "Pedido em processamento! Verifique as informações acima para confirmarmos seu envio.";
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData?.data) {
+          audioOutput = part.inlineData.data;
+        }
+        if (part.functionCall) {
+          orderDetails = { ...part.functionCall.args, strategy: product.salesStrategy };
+          textOutput = "Pedido registrado com sucesso! Estou processando as informações.";
+        }
       }
     }
 
     return {
-      text: textOutput || "Estou aqui para tirar suas dúvidas, como posso ajudar?",
+      text: textOutput,
       audioData: audioOutput,
-      isThinking: !!config.thinkingConfig,
       orderConfirmed: orderDetails
     };
   } catch (error: any) {
-    console.error("Gemini Critical Error:", error);
-    return { text: "O sistema de IA está sendo sincronizado. Por favor, reenvie sua mensagem em 2 segundos." };
+    console.error("Gemini API Error:", error);
+    return { text: "⚠️ IA Temporariamente Indisponível. Verifique se sua API_KEY está correta e ativa." };
   }
 };

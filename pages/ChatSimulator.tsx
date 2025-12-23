@@ -1,25 +1,35 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Product, Message, User, SalesStrategy } from '../types';
 import { getGeminiResponse, AIResponse } from '../services/gemini';
 import { PLANS_CONFIG } from '../App';
 
-// Funções de decodificação de áudio PCM
+// Funções de decodificação de áudio PCM seguindo as diretrizes
 function decodeBase64(base64: string) {
   const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
   return bytes;
 }
 
-async function decodeAudioData(data: Uint8Array, ctx: AudioContext): Promise<AudioBuffer> {
+// Implementação manual de decodificação conforme documentação do SDK
+async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
   const dataInt16 = new Int16Array(data.buffer);
-  const buffer = ctx.createBuffer(1, dataInt16.length, 24000);
-  const channelData = buffer.getChannelData(0);
-  for (let i = 0; i < dataInt16.length; i++) {
-    channelData[i] = dataInt16[i] / 32768.0;
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
   }
   return buffer;
 }
@@ -76,7 +86,8 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
       }
       const ctx = audioContextRef.current;
       const audioData = decodeBase64(base64Audio);
-      const audioBuffer = await decodeAudioData(audioData, ctx);
+      // Decodificando áudio PCM 24kHz Mono conforme retorno da API
+      const audioBuffer = await decodeAudioData(audioData, ctx, 24000, 1);
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(ctx.destination);
@@ -126,12 +137,12 @@ const ChatSimulator: React.FC<ChatSimulatorProps> = ({ user, product, customProm
       setMessages(prev => [...prev, modelMsg]);
       if (res.audioData) playAIResponse(res.audioData);
 
-    } catch (error) {
+    } catch (error: any) {
       setIsTyping(false);
       setIsThinking(false);
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: "Opa, tive um probleminha na conexão aqui. Pode repetir?", 
+        text: `Erro: ${error.message || "Problema na conexão. Verifique sua chave de API."}`, 
         timestamp: new Date() 
       }]);
     }
