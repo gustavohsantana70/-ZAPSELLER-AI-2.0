@@ -2,7 +2,7 @@
 import { defineConfig } from 'vite';
 
 // A chave fornecida é injetada aqui. O sistema prioriza a variável de ambiente se existir.
-const envKey = String(process.env.API_KEY || "AIzaSyAbGKJte4L0msR1tNDrFnWieGeeiC5JJVU");
+const envKey = String(process.env.API_KEY || "");
 
 export default defineConfig({
   server: {
